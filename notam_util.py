@@ -614,7 +614,7 @@ def back_traces(df,jdata):
 
 
     filename = today.strftime("%Y%m%d")
-    fig.write_html(f'{filename}_notams.html', full_html=True)
+    fig.write_html(f'output/{filename}_notams.html', full_html=True)
     # fig.show()
 
 
