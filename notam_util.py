@@ -489,7 +489,7 @@ def back_traces(df,jdata):
         hovertemplate =
         '%{text}',
         showscale=False,
-        legendwidth=50,
+        legendwidth=25,
         marker=dict(
             line=dict(color="red", width=1),
             opacity=0.5
@@ -605,10 +605,8 @@ def back_traces(df,jdata):
                 lon = lon,
                 lat = lat,
                 fill = "toself",
-                # make it skip hoverinfo
                 hoverinfo="skip",
-                # visible=False,
-                legendwidth=0.1,
+                legendwidth=0.1, # inop
                 line=dict(color='tomato',width=1)))
 
 
