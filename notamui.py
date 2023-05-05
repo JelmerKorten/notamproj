@@ -1,4 +1,4 @@
-# this will have to be the notam gui
+# Notam gui
 # TODO: rewrite getnotams to fetch notams again if file already exists
 
 
@@ -26,10 +26,12 @@ class App(ctk.CTk):
         self.popup = None
         self.overwrite = False
         self.airports = "omae omaa omad"
+        self.current_frame = None
 
         # Create initial frame
         self.frame1 = ctk.CTkFrame(self)
         self.frame1.pack()
+        self.current_frame = self.frame1
 
         # Create popup frame
         self.frame2 = ctk.CTkFrame(self)
@@ -72,18 +74,24 @@ class App(ctk.CTk):
         self.frame4_button.pack()
 
     def frame4button(self):
-        self.frame4.pack_forget()
+        self.current_frame.pack_forget()
+        # self.frame4.pack_forget()
         self.frame1.pack()
+        self.current_frame = self.frame1
 
     def frame3button(self):
-        self.frame3.pack_forget()
+        self.current_frame.pack_forget()
+        # self.frame3.pack_forget()
         self.frame1.pack()
+        self.current_frame = self.frame1
 
 
     def collect_frame2(self):
         nu.collect(self.airports)
-        self.frame2.pack_forget()
+        self.current_frame.pack_forget()
+        # self.frame2.pack_forget()
         self.frame3.pack()
+        self.current_frame = self.frame3
 
 
     def collect_frame1(self):
@@ -91,8 +99,10 @@ class App(ctk.CTk):
         url = f"files/{today}.csv"
         self.airports = self.entry.get()
         if os.path.isfile(url):
-            self.frame1.pack_forget()
+            self.current_frame.pack_forget()
+            # self.frame1.pack_forget()
             self.frame2.pack()
+            self.current_frame = self.frame2
 
 
     def plot_func(self):
@@ -100,13 +110,17 @@ class App(ctk.CTk):
         url = f"files/{today}.csv"
         if os.path.isfile(url):
             nu.handle()
-            self.frame1.pack_forget()
+            self.current_frame.pack_forget()
+            # self.frame1.pack_forget()
             self.frame4.pack()
+            self.current_frame = self.frame4
         else:
             nu.collect(self.airports)
             nu.handle()
-            self.frame1.pack_forget()
+            self.current_frame.pack_forget()
+            # self.frame1.pack_forget()
             self.frame4.pack()
+            self.current_frame = self.frame4
 
 
 if __name__ == "__main__":
