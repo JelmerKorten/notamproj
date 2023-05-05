@@ -75,13 +75,11 @@ class App(ctk.CTk):
 
     def frame4button(self):
         self.current_frame.pack_forget()
-        # self.frame4.pack_forget()
         self.frame1.pack()
         self.current_frame = self.frame1
 
     def frame3button(self):
         self.current_frame.pack_forget()
-        # self.frame3.pack_forget()
         self.frame1.pack()
         self.current_frame = self.frame1
 
@@ -89,7 +87,6 @@ class App(ctk.CTk):
     def collect_frame2(self):
         nu.collect(self.airports)
         self.current_frame.pack_forget()
-        # self.frame2.pack_forget()
         self.frame3.pack()
         self.current_frame = self.frame3
 
@@ -100,7 +97,6 @@ class App(ctk.CTk):
         self.airports = self.entry.get()
         if os.path.isfile(url):
             self.current_frame.pack_forget()
-            # self.frame1.pack_forget()
             self.frame2.pack()
             self.current_frame = self.frame2
 
@@ -111,14 +107,12 @@ class App(ctk.CTk):
         if os.path.isfile(url):
             nu.handle()
             self.current_frame.pack_forget()
-            # self.frame1.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
         else:
             nu.collect(self.airports)
             nu.handle()
             self.current_frame.pack_forget()
-            # self.frame1.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
 
