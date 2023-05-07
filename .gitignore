@@ -20,3 +20,4 @@ notamui.build
 notamui.dist
 main.build
 main.dist
+.DS_Store
