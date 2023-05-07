@@ -26,6 +26,7 @@ class App(ctk.CTk):
         self.popup = None
         self.overwrite = False
         self.airports = "omae omaa omad"
+        self.airport_str = "_".join(self.airports.split(" "))
         self.current_frame = None
 
         # Create initial frame
@@ -93,8 +94,9 @@ class App(ctk.CTk):
 
     def collect_frame1(self):
         today = date.today().strftime("%Y%m%d")
-        url = f"files/{today}.csv"
+        url = f"files/{today}_notams_{'_'.join(self.airports.split(' '))}.csv"
         self.airports = self.entry.get()
+        self.airport_str = '_'.join(self.airports.split(' '))
         if os.path.isfile(url):
             self.current_frame.pack_forget()
             self.frame2.pack()
@@ -103,15 +105,15 @@ class App(ctk.CTk):
 
     def plot_func(self):
         today = date.today().strftime("%Y%m%d")
-        url = f"files/{today}.csv"
+        url = f"files/{today}_notams_{self.airport_str}.csv"
         if os.path.isfile(url):
-            nu.handle()
+            nu.handle(airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
         else:
             nu.collect(self.airports)
-            nu.handle()
+            nu.handle(airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
