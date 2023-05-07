@@ -20,15 +20,19 @@ from os import path
 def main():
     today = date.today()
     today_str = today.strftime("%Y%m%d")
-    url = f"files/{today_str}.csv"
-    output = f"output/{today_str}_notams.html"
+    # TO CHANGE IF YOU WANT DIFFERENT AIRPORTS
+    airports = "omaa omae"
+    
+    airports_str = "_".join(airports.split(" "))
+    url = f"files/{today_str}_notams_{airports_str}.csv"
+    output = f"output/{today_str}_notams_{airports_str}.html"
     if path.isfile(output):
         quit()
     elif path.isfile(url):
-        nu.handle()
+        nu.handle(airports_str=airports_str)
     else:
-        nu.collect("omaa")
-        nu.handle()
+        nu.collect(airports)
+        nu.handle(airports_str=airports_str)
 
 if __name__ == "__main__":
     main()
