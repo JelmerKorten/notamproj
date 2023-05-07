@@ -4,3 +4,4 @@ pip install customtkinter
 pip install shapely
 pip install selenium
 pip install pyproj
+pip install arrow
