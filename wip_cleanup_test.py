@@ -42,6 +42,7 @@ def main():
     url = f"files/{today_str}_notams_{airports_str}.csv"
     # Output url
     output = f"output/{today_str}_notams_{airports_str}.html"
+    # print(url, output)
     if os.path.isfile(output):
         quit()
     elif os.path.isfile(url):
