@@ -16,3 +16,7 @@ wip_nuitka_test.py
 wip_nuitka_test.dist
 wip_nuitka_test.bin
 wip_nuitka_test*
+notamui.build
+notamui.dist
+main.build
+main.dist
