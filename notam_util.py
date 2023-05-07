@@ -102,10 +102,10 @@ def create_circle(latlon:tuple, radius:int) -> list:
 
 
 # %% TO IMPORT -- readnotams(filepath = 'notams/current_notams.csv') -> df
-def readnotams(filepath = None):
+def readnotams(filepath = None, airports_str="omaa"):
     if filepath == None:
         today = date.today().strftime("%Y%m%d")
-        filepath = f"files/{today}.csv"
+        filepath = f"files/{today}_notams_{airports_str}.csv"
 
     with open(filepath) as file:
         current_notams = file.readlines()
@@ -467,7 +467,7 @@ def create_traces_plot(df,jdata):
 
 
 #%% back_trace(df,jdata) -> output/notamsyyyymmdd.html
-def back_traces(df,jdata):
+def back_traces(df,jdata,airports_str):
     """Takes in the df and the create jdata.
     Plots the required shapes on the plot.
     TODO: fix hovertemplates.
@@ -479,6 +479,7 @@ def back_traces(df,jdata):
 
     today = date.today()
     plottitle = today.strftime("%Y %b %d")
+    plottitle += f" {airports_str}"
     fig = go.Figure(go.Choroplethmapbox(
         name='Notams',
         geojson=jdata,
@@ -614,8 +615,7 @@ def back_traces(df,jdata):
 
 
     filename = today.strftime("%Y%m%d")
-    fig.write_html(f'output/{filename}_notams.html', full_html=True)
-    # fig.show()
+    fig.write_html(f'output/{filename}_notams_{airports_str}.html', full_html=True)
 
 
 
@@ -626,7 +626,8 @@ def collect(airports):
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
-    url = f"files/{today}.csv"
+    airports_str = "_".join(airports.split(" "))
+    url = f"files/{today}_notams_{airports_str}.csv"
     
      
     options = Options()
@@ -671,17 +672,18 @@ def collect(airports):
 
     # write notams to file
 
+
     with open(url, 'w+') as file:
         file.write(current_notams)
 
 # %% TO IMPORT -- handle() file -> notams output
-def handle(filepath=None):
-    df = readnotams(filepath)
+def handle(filepath=None, airports_str="omaa"):
+    df = readnotams(filepath, airports_str)
     df = add_polygons(df)
     df = add_multiple_circles(df)
     df = split_circles_add_indices(df)
     jdata = create_jdata(df)
-    back_traces(df,jdata)
+    back_traces(df,jdata,airports_str)
 
 
 # %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days                
