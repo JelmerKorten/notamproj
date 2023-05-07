@@ -12,3 +12,7 @@ axis_test.html
 tabstest.py
 tabtest.py
 tabtest.txt
+wip_nuitka_test.py
+wip_nuitka_test.dist
+wip_nuitka_test.bin
+wip_nuitka_test*
