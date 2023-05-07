@@ -32,10 +32,12 @@ def main():
     # Clean up folders to save memory
     nu.cleanup(days = 5)
     
-    # Fetch days
+    # Fetch today
     today = date.today()
     today_str = today.strftime("%Y%m%d")
+    # Files url
     url = f"files/{today_str}.csv"
+    # Output url
     output = f"output/{today_str}_notams.html"
     if os.path.isfile(output):
         quit()
