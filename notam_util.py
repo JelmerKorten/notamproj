@@ -681,3 +681,11 @@ def handle(filepath=None):
     jdata = create_jdata(df)
     back_traces(df,jdata)
 
+
+# %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days
+def cleanup(today):
+    """To walk through files and output dir to delete files older than 5 days."""
+    
+    today
+    
+    pass

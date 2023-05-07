@@ -18,9 +18,10 @@ from datetime import date
 from os import path
 
 def main():
-    today = date.today().strftime("%Y%m%d")
-    url = f"files/{today}.csv"
-    output = f"output/{today}_notams.html"
+    today = date.today()
+    today_str = today.strftime("%Y%m%d")
+    url = f"files/{today_str}.csv"
+    output = f"output/{today_str}_notams.html"
     if path.isfile(output):
         quit()
     elif path.isfile(url):
