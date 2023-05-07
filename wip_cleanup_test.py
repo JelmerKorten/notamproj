@@ -30,21 +30,24 @@ def cleanup(DAYS):
 
 def main():
     # Clean up folders to save memory
-    nu.cleanup(days = 5)
+    nu.cleanup(5)
     
     # Fetch today
     today = date.today()
     today_str = today.strftime("%Y%m%d")
+    # abu dhabi, omae fir, bateen, al dhafra
+    airports = ['omaa','omae','omad','omam']
     # Files url
-    url = f"files/{today_str}.csv"
+    airports_str = "_".join(airports)
+    url = f"files/{today_str}_notams_{airports_str}.csv"
     # Output url
-    output = f"output/{today_str}_notams.html"
+    output = f"output/{today_str}_notams_{airports_str}.html"
     if os.path.isfile(output):
         quit()
     elif os.path.isfile(url):
         nu.handle()
     else:
-        nu.collect("omaa")
+        nu.collect("omaa omae omad omab")
         nu.handle()
 
 if __name__ == "__main__":
