@@ -1,44 +1,49 @@
 # imports
 import notam_util as nu
 from datetime import date
-import time
 import os
 from pathlib import Path
 import arrow
                 
-def arrow_cleanup(path, DAYS):
+def cleanup(DAYS):
+    # Get path, so that we can dynamically create the file paths
+    # for current OS
+    path = os.getcwd()
+    # Folders to check
+    folders = ['files', 'output']
+    # Set the time from when to remove
     remove_time = arrow.now().shift(days=-DAYS)
-    for item in Path(path).glob("*_notams*"):
-        if item.is_file():
-            print(str(item.absolute()))
+    for folder in folders:
+        # Join path of folders with cwd
+        folder_path = os.path.join(path, folder)
+        # For item in path that has _notams
+        for item in Path(folder_path).glob("*_notams*"):
+            # Double check if it's a file and not a directory
+            if not item.is_file():
+                continue
+            # Check if creation time of that file is more than DAYS days away
             if arrow.get(item.stat().st_mtime) < remove_time:
-                # remove the file
+                # Remove the file
                 os.remove(item)
-                print(f"To remove: {item}")
         
 
 
 def main():
-    path = os.getcwd()
-    print(path)
-    folders = ['files', 'output']
-    for folder in folders:
-        folder_path = os.path.join(path, folder)
-        print(folder_path)
-        print(os.listdir(folder_path))
-        arrow_cleanup(folder_path, 5)
+    # Clean up folders to save memory
+    nu.cleanup(days = 5)
     
-    # today = date.today()
-    # today_str = today.strftime("%Y%m%d")
-    # url = f"files/{today_str}.csv"
-    # output = f"output/{today_str}_notams.html"
-    # if os.path.isfile(output):
-    #     quit()
-    # elif os.path.isfile(url):
-    #     nu.handle()
-    # else:
-    #     nu.collect("omaa")
-    #     nu.handle()
+    # Fetch days
+    today = date.today()
+    today_str = today.strftime("%Y%m%d")
+    url = f"files/{today_str}.csv"
+    output = f"output/{today_str}_notams.html"
+    if os.path.isfile(output):
+        quit()
+    elif os.path.isfile(url):
+        nu.handle()
+    else:
+        nu.collect("omaa")
+        nu.handle()
 
 if __name__ == "__main__":
     main()
