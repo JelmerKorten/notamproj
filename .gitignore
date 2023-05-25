@@ -21,6 +21,8 @@ notamui.dist
 main.build
 main.dist
 .DS_Store
+wip_cleanup_test.*
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos
