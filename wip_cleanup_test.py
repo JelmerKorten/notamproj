@@ -46,10 +46,10 @@ def main():
     if os.path.isfile(output):
         quit()
     elif os.path.isfile(url):
-        nu.handle()
+        nu.handle(airports_str=airports_str)
     else:
-        nu.collect("omaa omae omad omab")
-        nu.handle()
+        nu.collect(airports=airports_str)
+        nu.handle(airports_str=airports_str)
 
 if __name__ == "__main__":
     main()
