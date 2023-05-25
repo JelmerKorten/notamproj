@@ -466,7 +466,7 @@ def create_traces_plot(df,jdata):
     # will need to host this somewhere, maybe on my site?
 
 
-#%% back_trace(df,jdata) -> output/notamsyyyymmdd.html
+#%% back_trace(df,jdata) -> output/notamsyyyymmdd_fields.html
 def back_traces(df,jdata,airports_str):
     """Takes in the df and the create jdata.
     Plots the required shapes on the plot.
@@ -524,7 +524,7 @@ def back_traces(df,jdata,airports_str):
         mode = "markers+lines",
         lon = [54.2, 54.3152, 54.45, 54.5377, 54.5982, 54.660418, 54.6112, 54.5458, 54.452, 54.3143, 54.1852],
         lat = [24.3745, 24.32, 24.3437, 24.3473, 24.4047, 24.420518, 24.393, 24.3307, 24.3273, 24.3, 24.3572],
-        marker = {'size': 8},
+        # marker = {'size': 8},
         legendwidth=LEG_WIDTH,
         line=dict(color=ROUTECOL)))    
     fig.add_trace(go.Scattermapbox(
@@ -532,7 +532,7 @@ def back_traces(df,jdata,airports_str):
         mode = "markers+lines",
         lon = [54.589, 54.692, 54.681, 54.6604, 54.6633, 54.6732, 54.589],
         lat = [24.6345, 24.553, 24.482, 24.4205, 24.4867, 24.5515, 24.619],
-        marker = {'size': 8},
+        # marker = {'size': 8},
         legendwidth=LEG_WIDTH,
         line=dict(color=ROUTECOL)))    
     fig.add_trace(go.Scattermapbox(
@@ -540,7 +540,7 @@ def back_traces(df,jdata,airports_str):
         mode = "markers+lines",
         lon = [54.4572, 54.4493, 54.4033, 54.2863 ],
         lat = [24.4133, 24.3928, 24.4122, 24.4533 ],
-        marker = {'size': 8},
+        # marker = {'size': 8},
         legendwidth=LEG_WIDTH,
         line=dict(color=ROUTECOL)))   
     fig.add_trace(go.Scattermapbox(
@@ -548,7 +548,7 @@ def back_traces(df,jdata,airports_str):
         mode = "markers+lines",
         lon = [54.3143, 54.144],
         lat = [24.3, 24.3187],
-        marker = {'size': 8},
+        # marker = {'size': 8},
         legendwidth=LEG_WIDTH,
         line=dict(color=ROUTECOL)))  
     fig.add_trace(go.Scattermapbox(
@@ -556,7 +556,7 @@ def back_traces(df,jdata,airports_str):
         mode = "markers+lines",
         lon = [54.3152, 54.1518],
         lat = [24.32, 24.338],
-        marker = {'size': 8},
+        # marker = {'size': 8},
         legendwidth=LEG_WIDTH,
         line=dict(color=ROUTECOL)))
 
