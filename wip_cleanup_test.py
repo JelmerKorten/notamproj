@@ -4,6 +4,7 @@ from datetime import date
 import os
 from pathlib import Path
 import arrow
+import sys
                 
 def cleanup(DAYS):
     # Get path, so that we can dynamically create the file paths
@@ -44,7 +45,7 @@ def main():
     output = f"output/{today_str}_notams_{airports_str}.html"
     # print(url, output)
     if os.path.isfile(output):
-        quit()
+        sys.exit()
     elif os.path.isfile(url):
         nu.handle(airports_str=airports_str)
     else:
