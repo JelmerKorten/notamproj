@@ -626,6 +626,7 @@ def collect(airports):
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
+    airports = airports.replace("_", " ")
     airports_str = "_".join(airports.split(" "))
     url = f"files/{today}_notams_{airports_str}.csv"
     
