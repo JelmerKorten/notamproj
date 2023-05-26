@@ -5,18 +5,21 @@ import os
 from pathlib import Path
 import arrow
 import sys
-                
+
+base = os.path.dirname(os.path.abspath(__file__))
+
 def cleanup(DAYS):
     # Get path, so that we can dynamically create the file paths
     # for current OS
-    path = os.getcwd()
+    # path = os.getcwd()
+    
     # Folders to check
     folders = ['files', 'output']
     # Set the time from when to remove
     remove_time = arrow.now().shift(days=-DAYS)
     for folder in folders:
         # Join path of folders with cwd
-        folder_path = os.path.join(path, folder)
+        folder_path = os.path.join(base, folder)
         # For item in path that has _notams
         for item in Path(folder_path).glob("*_notams*"):
             # Double check if it's a file and not a directory
@@ -40,10 +43,11 @@ def main():
     airports = ['omaa','omae','omad','omam']
     # Files url
     airports_str = "_".join(airports)
-    url = f"files/{today_str}_notams_{airports_str}.csv"
+    url = os.path.join(base, f"files/{today_str}_notams_{airports_str}.csv")
     # Output url
-    output = f"output/{today_str}_notams_{airports_str}.html"
-    # print(url, output)
+    output = os.path.join(base, f"output/{today_str}_notams_{airports_str}.html")
+    
+    
     if os.path.isfile(output):
         sys.exit()
     elif os.path.isfile(url):
