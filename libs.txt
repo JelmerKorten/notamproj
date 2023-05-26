@@ -6,4 +6,6 @@ pip install selenium
 pip install pyproj
 pip install arrow
 pip install python-crontab
+pip install nuitka # potentially not needed
+pip install cx_Freeze --upgrade
 
