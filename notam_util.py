@@ -467,7 +467,7 @@ def create_traces_plot(df,jdata):
 
 
 #%% back_trace(df,jdata) -> output/notamsyyyymmdd_fields.html
-def back_traces(df,jdata,airports_str):
+def back_traces(df,jdata,airports_str, filepath_out):
     """Takes in the df and the create jdata.
     Plots the required shapes on the plot.
     TODO: fix hovertemplates.
@@ -614,8 +614,8 @@ def back_traces(df,jdata,airports_str):
 
 
 
-    filename = today.strftime("%Y%m%d")
-    fig.write_html(f'output/{filename}_notams_{airports_str}.html', full_html=True)
+    # filename = today.strftime("%Y%m%d")
+    fig.write_html(filepath_out, full_html=True)
 
 
 
@@ -681,13 +681,13 @@ def collect(airports):
         file.write(current_notams)
 
 # %% TO IMPORT -- handle() file -> notams output
-def handle(filepath=None, airports_str="omaa"):
-    df = readnotams(filepath, airports_str)
+def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
+    df = readnotams(filepath_in, airports_str)
     df = add_polygons(df)
     df = add_multiple_circles(df)
     df = split_circles_add_indices(df)
     jdata = create_jdata(df)
-    back_traces(df,jdata,airports_str)
+    back_traces(df,jdata,airports_str,filepath_out)
 
 
 # %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days                

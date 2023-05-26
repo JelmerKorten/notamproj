@@ -51,10 +51,10 @@ def main():
     if os.path.isfile(output):
         sys.exit()
     elif os.path.isfile(url):
-        nu.handle(airports_str=airports_str)
+        nu.handle(filepath_in=url, filepath_out=output ,airports_str=airports_str)
     else:
         nu.collect(airports=airports_str)
-        nu.handle(airports_str=airports_str)
+        nu.handle(filepath_in=url, filepath_out=output, airports_str=airports_str)
 
 if __name__ == "__main__":
     main()
