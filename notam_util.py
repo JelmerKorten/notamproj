@@ -628,7 +628,10 @@ def collect(airports):
     today = date.today().strftime("%Y%m%d")
     airports = airports.replace("_", " ")
     airports_str = "_".join(airports.split(" "))
-    url = f"files/{today}_notams_{airports_str}.csv"
+    cwd = os.getcwd() #new
+    suburl = os.path.join(cwd,'files') #new
+    url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") #new
+    # url = f"{today}_notams_{airports_str}.csv" # start with files/
     
      
     options = Options()
@@ -674,7 +677,7 @@ def collect(airports):
     # write notams to file
 
 
-    with open(url, 'w+') as file:
+    with open(url, 'w') as file: # original: url,  mode: "w+"
         file.write(current_notams)
 
 # %% TO IMPORT -- handle() file -> notams output
