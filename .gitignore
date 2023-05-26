@@ -22,6 +22,7 @@ main.build
 main.dist
 .DS_Store
 wip_cleanup_test.*
+clean_uiless.*
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
