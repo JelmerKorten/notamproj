@@ -24,7 +24,8 @@ main.dist
 wip_cleanup_test.*
 clean_uiless.*
 build
-
+notamproject/*
+notamproject
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos
