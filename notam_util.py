@@ -704,11 +704,11 @@ def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
 
 
 # %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days                
-def cleanup(DAYS):
+def cleanup(base, DAYS):
     """To walk through files and output dir to delete files older than DAYS days."""
     # Get path, so that we can dynamically create the file paths
     # for current OS
-    path = os.getcwd()
+    path = base
     # Folders to check
     folders = ['files', 'output']
     # Set the time from when to remove

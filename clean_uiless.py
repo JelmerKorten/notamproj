@@ -32,10 +32,10 @@ def cleanup(DAYS):
         
 
 
-def main():
+def main(base):
     # Clean up folders to save memory
-    nu.cleanup(5)
-    
+    nu.cleanup(base=base, DAYS=5)
+    print(base)
     # Fetch today
     today = date.today()
     today_str = today.strftime("%Y%m%d")
@@ -59,5 +59,5 @@ def main():
         nu.handle(filepath_in=url, filepath_out=output, airports_str=airports_str)
 
 if __name__ == "__main__":
-    main()
+    main(base)
     sys.exit()
