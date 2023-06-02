@@ -1,5 +1,6 @@
 # HOW TO BUILD
 # run: python -m nuitka --standalone my_program.py
+# run standalone: clean_uiless.dist/clean_uiless.bin
 
 
 
