@@ -5,6 +5,7 @@ import pandas as pd
 import textwrap
 import arrow
 from pathlib import Path
+from platform import system as ps
 
 # imports for Create Circle point buffer
 from shapely.geometry import Point
@@ -638,7 +639,18 @@ def collect(airports):
     # do not open an instance of google chrome
     options.headless = True
     # will need to move this to the notams folder
-    ser = Service('support/chromedriver_mac64/chromedriver')
+    sys_name = ps() # system name
+    chromedriver_url = os.path.join(cwd, 'support')
+    
+    # system dependent
+    if sys_name == "Windows":
+        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_win32')
+        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver.exe')
+    else:
+        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_mac64')
+        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver')
+        
+    ser = Service(chromedriver_url)
     driver = webdriver.Chrome(service=ser, options=options)
 
     # navigate to site
