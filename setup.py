@@ -1,3 +1,8 @@
+# HOW TO BUILD
+# run: python -m nuitka --standalone my_program.py
+
+
+
 from __future__ import annotations
 
 from cx_Freeze import Executable, setup
