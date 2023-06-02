@@ -6,36 +6,23 @@ from pathlib import Path
 import arrow
 import sys
 
-base = os.path.dirname(os.path.abspath(__file__))
+# create a base:
+ROOT = Path(__file__).parent.resolve()
+FILES = ROOT / "files"
+my_file = FILES / "my_filename.txt"
+print(my_file)
+# my_file.touch()
 
-def cleanup(DAYS):
-    # Get path, so that we can dynamically create the file paths
-    # for current OS
-    # path = os.getcwd()
-    
-    # Folders to check
-    folders = ['files', 'output']
-    # Set the time from when to remove
-    remove_time = arrow.now().shift(days=-DAYS)
-    for folder in folders:
-        # Join path of folders with cwd
-        folder_path = os.path.join(base, folder)
-        # For item in path that has _notams
-        for item in Path(folder_path).glob("*_notams*"):
-            # Double check if it's a file and not a directory
-            if not item.is_file():
-                continue
-            # Check if creation time of that file is more than DAYS days away
-            if arrow.get(item.stat().st_mtime) < remove_time:
-                # Remove the file
-                os.remove(item)
-        
+# with my_file.open("w") as file:
+#     ...
 
+# base = os.path.dirname(os.path.abspath(__file__))
 
-def main(base):
+def main(ROOT):
     # Clean up folders to save memory
-    nu.cleanup(base=base, DAYS=5)
-    print(base)
+    nu.cleanup(base=ROOT, DAYS=5)
+    print(ROOT)
+    print(__file__)
     # Fetch today
     today = date.today()
     today_str = today.strftime("%Y%m%d")
@@ -43,21 +30,24 @@ def main(base):
     airports = ['omaa','omae','omad','omam']
     # Files url
     airports_str = "_".join(airports)
-    url = os.path.join(base, "files")
-    url = os.path.join(url, f"{today_str}_notams_{airports_str}.csv")
+    FILES = ROOT / "files"
+    FILE_URL = FILES / f"{today_str}_notams_{airports_str}.csv"
+    # url = os.path.join(url, f"{today_str}_notams_{airports_str}.csv")
     # Output url
-    output = os.path.join(base, "output")
-    output = os.path.join(output, f"{today_str}_notams_{airports_str}.html")
+    OUTPUT = ROOT / "output"
+    OUTPUT_FILE = OUTPUT / f"{today_str}_notams_{airports_str}.html"
+    # output = os.path.join(base, "output")
+    # output = os.path.join(output, f"{today_str}_notams_{airports_str}.html")
     
     
-    if os.path.isfile(output):
+    if os.path.isfile(OUTPUT_FILE):
         sys.exit()
-    elif os.path.isfile(url):
-        nu.handle(filepath_in=url, filepath_out=output ,airports_str=airports_str)
+    elif os.path.isfile(FILE_URL):
+        nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
     else:
-        nu.collect(base=base, airports=airports_str)
-        nu.handle(filepath_in=url, filepath_out=output, airports_str=airports_str)
+        nu.collect(base=ROOT, airports=airports_str)
+        nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE,  airports_str=airports_str)
 
 if __name__ == "__main__":
-    main(base)
+    main(ROOT)
     sys.exit()

@@ -630,9 +630,11 @@ def collect(base, airports):
     airports = airports.replace("_", " ")
     airports_str = "_".join(airports.split(" "))
     # cwd = os.getcwd() #new
-    suburl = os.path.join(base,'files') #new
+    # suburl = os.path.join(base,'files') #new
+    SUBURL = base / "files"
     # url = filepath_in #new
-    url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") # start with files/
+    # url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") # start with files/
+    url = SUBURL / f"{today}_notams_{airports_str}.csv"
     
     
      
@@ -641,15 +643,20 @@ def collect(base, airports):
     options.headless = True
     # will need to move this to the notams folder
     sys_name = ps() # system name
-    chromedriver_url = os.path.join(base, 'support')
+    # chromedriver_url = os.path.join(base, 'support')
+    chromedriver_url = base / "support"
     
     # system dependent
     if sys_name == "Windows":
-        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_win32')
-        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver.exe')
+        chromedriver_url = chromedriver_url / "chromedriver_win32"
+        chromedriver_url = chromedriver_url / "chromedriver.exe"
+        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_win32')
+        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver.exe')
     else:
-        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_mac64')
-        chromedriver_url = os.path.join(chromedriver_url, 'chromedriver')
+        chromedriver_url = chromedriver_url / "chromedriver_mac64"
+        chromedriver_url = chromedriver_url / "chromedriver"
+        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_mac64')
+        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver')
         
     ser = Service(chromedriver_url)
     driver = webdriver.Chrome(service=ser, options=options)
