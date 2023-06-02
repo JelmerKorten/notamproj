@@ -622,17 +622,18 @@ def back_traces(df,jdata,airports_str, filepath_out):
 
 
 # %% TO IMPORT -- collect(airports) -> write file Collects notams
-def collect(airports):
+def collect(base, airports):
     """Gets the notams in raw format from notams.gaa.gov and writes to file."""
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
     airports = airports.replace("_", " ")
     airports_str = "_".join(airports.split(" "))
-    cwd = os.getcwd() #new
-    suburl = os.path.join(cwd,'files') #new
-    url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") #new
-    # url = f"{today}_notams_{airports_str}.csv" # start with files/
+    # cwd = os.getcwd() #new
+    suburl = os.path.join(base,'files') #new
+    # url = filepath_in #new
+    url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") # start with files/
+    
     
      
     options = Options()
@@ -640,7 +641,7 @@ def collect(airports):
     options.headless = True
     # will need to move this to the notams folder
     sys_name = ps() # system name
-    chromedriver_url = os.path.join(cwd, 'support')
+    chromedriver_url = os.path.join(base, 'support')
     
     # system dependent
     if sys_name == "Windows":

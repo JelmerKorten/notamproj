@@ -43,9 +43,11 @@ def main():
     airports = ['omaa','omae','omad','omam']
     # Files url
     airports_str = "_".join(airports)
-    url = os.path.join(base, f"files/{today_str}_notams_{airports_str}.csv")
+    url = os.path.join(base, "files")
+    url = os.path.join(url, f"{today_str}_notams_{airports_str}.csv")
     # Output url
-    output = os.path.join(base, f"output/{today_str}_notams_{airports_str}.html")
+    output = os.path.join(base, "output")
+    output = os.path.join(output, f"{today_str}_notams_{airports_str}.html")
     
     
     if os.path.isfile(output):
@@ -53,7 +55,7 @@ def main():
     elif os.path.isfile(url):
         nu.handle(filepath_in=url, filepath_out=output ,airports_str=airports_str)
     else:
-        nu.collect(airports=airports_str)
+        nu.collect(base=base, airports=airports_str)
         nu.handle(filepath_in=url, filepath_out=output, airports_str=airports_str)
 
 if __name__ == "__main__":
