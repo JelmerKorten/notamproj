@@ -2,15 +2,32 @@
 import notam_util as nu
 from datetime import date
 import os
-from pathlib import Path
-import arrow
+# from pathlib import Path
+# import arrow
 import sys
 
 # create a base:
-ROOT = Path(__file__).parent.resolve()
-FILES = ROOT / "files"
-my_file = FILES / "my_filename.txt"
-print(my_file)
+# ROOT = Path(__file__).parent.resolve()
+# FILES = ROOT / "files"
+# my_file = FILES / "my_filename.txt"
+# print(my_file)
+
+
+def find_data_file():
+    if getattr(sys, "frozen", False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+    return datadir
+
+ROOT = find_data_file()
+print("baseurl from find datafile ", ROOT)
+
+
+
 # my_file.touch()
 
 # with my_file.open("w") as file:
@@ -30,12 +47,12 @@ def main(ROOT):
     airports = ['omaa','omae','omad','omam']
     # Files url
     airports_str = "_".join(airports)
-    FILES = ROOT / "files"
-    FILE_URL = FILES / f"{today_str}_notams_{airports_str}.csv"
+    FILES = os.path.join(ROOT,"files")
+    FILE_URL = os.path.join(FILES, f"{today_str}_notams_{airports_str}.csv")
     # url = os.path.join(url, f"{today_str}_notams_{airports_str}.csv")
     # Output url
-    OUTPUT = ROOT / "output"
-    OUTPUT_FILE = OUTPUT / f"{today_str}_notams_{airports_str}.html"
+    OUTPUT = os.path.join(ROOT, "output")
+    OUTPUT_FILE = os.path.join(OUTPUT, f"{today_str}_notams_{airports_str}.html")
     # output = os.path.join(base, "output")
     # output = os.path.join(output, f"{today_str}_notams_{airports_str}.html")
     
