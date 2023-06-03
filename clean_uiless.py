@@ -2,17 +2,11 @@
 import notam_util as nu
 from datetime import date
 import os
-# from pathlib import Path
-# import arrow
 import sys
 
-# create a base:
-# ROOT = Path(__file__).parent.resolve()
-# FILES = ROOT / "files"
-# my_file = FILES / "my_filename.txt"
-# print(my_file)
 
 
+# Func to get dir of executable
 def find_data_file():
     if getattr(sys, "frozen", False):
         # The application is frozen
@@ -24,22 +18,13 @@ def find_data_file():
     return datadir
 
 ROOT = find_data_file()
-print("baseurl from find datafile ", ROOT)
 
 
-
-# my_file.touch()
-
-# with my_file.open("w") as file:
-#     ...
-
-# base = os.path.dirname(os.path.abspath(__file__))
-
+# main
 def main(ROOT):
     # Clean up folders to save memory
     nu.cleanup(base=ROOT, DAYS=5)
-    print(ROOT)
-    print(__file__)
+
     # Fetch today
     today = date.today()
     today_str = today.strftime("%Y%m%d")
@@ -47,16 +32,11 @@ def main(ROOT):
     airports = ['omaa','omae','omad','omam']
     # Files url
     airports_str = "_".join(airports)
-    FILES = os.path.join(ROOT,"files")
-    FILE_URL = os.path.join(FILES, f"{today_str}_notams_{airports_str}.csv")
-    # url = os.path.join(url, f"{today_str}_notams_{airports_str}.csv")
+    FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{airports_str}.csv")
+
     # Output url
-    OUTPUT = os.path.join(ROOT, "output")
-    OUTPUT_FILE = os.path.join(OUTPUT, f"{today_str}_notams_{airports_str}.html")
-    # output = os.path.join(base, "output")
-    # output = os.path.join(output, f"{today_str}_notams_{airports_str}.html")
-    
-    
+    OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{airports_str}.html")
+
     if os.path.isfile(OUTPUT_FILE):
         sys.exit()
     elif os.path.isfile(FILE_URL):
