@@ -19,7 +19,7 @@ executables = [
 
 setup(
     name="uiless_test",
-    version="0.1",
+    version="0.1.1",
     description="uiless script",
     executables=executables,
     options=options,
