@@ -467,7 +467,7 @@ def create_traces_plot(df,jdata):
     # will need to host this somewhere, maybe on my site?
 
 
-#%% back_trace(df,jdata) -> output/notamsyyyymmdd_fields.html
+#%% back_traces(df,jdata) -> output/yyyymmdd_notams_fields.html
 def back_traces(df,jdata,airports_str, filepath_out):
     """Takes in the df and the create jdata.
     Plots the required shapes on the plot.
@@ -475,8 +475,8 @@ def back_traces(df,jdata,airports_str, filepath_out):
     TODO: fix axes not showing coords
     TODO: fix overlapping areas"""
     
-    ROUTECOL = "teal"
-    LEG_WIDTH = 25
+    ROUTECOL = "teal" # does work
+    LEG_WIDTH = 25 # does not work actually
 
     today = date.today()
     plottitle = today.strftime("%Y %b %d")
@@ -614,8 +614,7 @@ def back_traces(df,jdata,airports_str, filepath_out):
                 line=dict(color='tomato',width=1)))
 
 
-
-    # filename = today.strftime("%Y%m%d")
+    # write file
     fig.write_html(filepath_out, full_html=True)
 
 
@@ -629,37 +628,23 @@ def collect(base, airports):
     today = date.today().strftime("%Y%m%d")
     airports = airports.replace("_", " ")
     airports_str = "_".join(airports.split(" "))
-    # cwd = os.getcwd() #new
-    # suburl = os.path.join(base,'files') #new
-    SUBURL = os.path.join(base, "files")
-    # SUBURL = base / "files"
-    # url = filepath_in #new
-    # url = os.path.join(suburl, f"{today}_notams_{airports_str}.csv") # start with files/
-    url = os.path.join(SUBURL, f"{today}_notams_{airports_str}.csv")
+
+    # create output url
+    FILE_URL = os.path.join(base, "files", f"{today}_notams_{airports_str}.csv")
     # url = SUBURL / f"{today}_notams_{airports_str}.csv"
-    
-    
-     
+
     options = Options()
     # do not open an instance of google chrome
     options.headless = True
-    # will need to move this to the notams folder
-    sys_name = ps() # system name
-    # chromedriver_url = os.path.join(base, 'support')
+    # get system name
+    sys_name = ps()
     chromedriver_url = os.path.join(base, "support")
-    # chromedriver_url = base / "support"
     
     # system dependent
     if sys_name == "Windows":
-        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_win32")
-        chromedriver_url = os.path.join(chromedriver_url, "chromedriver.exe")
-        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_win32')
-        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver.exe')
+        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_win32", "chromedriver.exe")
     else:
-        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_mac64")
-        chromedriver_url = os.path.join(chromedriver_url, "chromedriver")
-        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver_mac64')
-        # chromedriver_url = os.path.join(chromedriver_url, 'chromedriver')
+        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_mac64", "chromedriver")
         
     ser = Service(chromedriver_url)
     driver = webdriver.Chrome(service=ser, options=options)
@@ -700,7 +685,7 @@ def collect(base, airports):
     # write notams to file
 
 
-    with open(url, 'w') as file: # original: url,  mode: "w+"
+    with open(FILE_URL, 'w') as file: # original: url,  mode: "w+"
         file.write(current_notams)
 
 # %% TO IMPORT -- handle() file -> notams output
@@ -716,22 +701,22 @@ def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
 # %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days                
 def cleanup(base, DAYS):
     """To walk through files and output dir to delete files older than DAYS days."""
-    # Get path, so that we can dynamically create the file paths
-    # for current OS
-    path = base
     # Folders to check
     folders = ['files', 'output']
     # Set the time from when to remove
     remove_time = arrow.now().shift(days=-DAYS)
     for folder in folders:
         # Join path of folders with cwd
-        folder_path = os.path.join(path, folder)
+        folder_path = os.path.join(base, folder)
         # For item in path that has _notams
         for item in Path(folder_path).glob("*_notams*"):
             # Double check if it's a file and not a directory
             if not item.is_file():
                 continue
             # Check if creation time of that file is more than DAYS days away
+            # ONLY works on the creation time. Not on file name.
             if arrow.get(item.stat().st_mtime) < remove_time:
                 # Remove the file
                 os.remove(item)
+
+# %%
