@@ -628,4 +628,3 @@ def cleanup(base, DAYS):
                 # Remove the file
                 os.remove(item)
 
-# %%
