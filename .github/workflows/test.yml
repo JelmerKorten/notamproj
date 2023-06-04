@@ -10,19 +10,15 @@ on:
       var_y:
         description: 'var_y description'
 
-  jobs:
+jobs:
 
-    build:
-      name: Create windows binary
-      runs-on: windows-latest
+  build:
+    name: Create windows binary
+    runs-on: windows-latest
 
-      steps:
-      - uses: actions/checkout@v2
-      
-        - name: print
-          run: echo "Olaa"
-        - name: create env
-          run: somehow create env here?
-        - name: create package
-          run: python setup.py build
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: print
+      run: echo "Olaa"
         
