@@ -17,6 +17,8 @@ on:
       runs-on: windows-latest
 
       steps:
+      - uses: actions/checkout@v2
+      
         - name: print
           run: echo "Olaa"
         - name: create env
