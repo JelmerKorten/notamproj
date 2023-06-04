@@ -13,8 +13,14 @@ on:
   jobs:
 
     build:
+      name: Create windows binary
       runs-on: windows-latest
 
       steps:
         - name: print
           run: echo "Olaa"
+        - name: create env
+          run: somehow create env here?
+        - name: create package
+          run: python setup.py build
+        
