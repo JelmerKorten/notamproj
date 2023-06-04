@@ -36,9 +36,23 @@ jobs:
 #       # Setup Python
 #       - uses: actions/setup-python@v4
 #         with:
-#           python-version: '3.11' # Version range or exact version of a Python version to use, using SemVer's version range syntax
-#           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+#           python-version: '3.11'
+#           cache: 'pip'
 
+#       # Setup environment
+#       - name: install requirements
+#         run: pip install requirements.txt
+#
+#       # Create standalone
+#       - name: create standalone
+#         run: python setup.py build
+#
+#       # find standalone and upload
+#       - name: Upload Artifact
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: standalone
+#           path: ./notamproject
 #       # Build python script into a stand-alone exe
 #       - uses: Nuitka/Nuitka-Action@main
 #         with:
