@@ -2,10 +2,6 @@
 .notamproj
 __pycache__/
 __pycache__
-output
-files/
-files
-output/
 test.html
 legend_test.html
 axis_test.html
