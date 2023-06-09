@@ -26,6 +26,8 @@ notamproject
 deprecated/*
 deprecated
 wip
+files/*_notams_*
+output/*_notams_*
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
