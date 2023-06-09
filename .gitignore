@@ -12,6 +12,7 @@ axis_test.html
 tabstest.py
 tabtest.py
 tabtest.txt
+wip/*
 wip_nuitka_test.py
 wip_nuitka_test.dist
 wip_nuitka_test.bin
@@ -26,7 +27,9 @@ clean_uiless.*
 build
 notamproject/*
 notamproject
-deprecated/
+deprecated/*
+deprecated
+wip
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
