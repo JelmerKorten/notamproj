@@ -29,6 +29,9 @@ jobs:
     - name: install requirements
       run: pip install -r requirements.txt
 
+    - name: print ls
+      run: ls
+
     # Create standalone
     - name: create standalone
       run: python setup.py build
