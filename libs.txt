@@ -1,9 +1,0 @@
-pip install pandas
-pip install plotly
-pip install customtkinter
-pip install shapely
-pip install selenium
-pip install pyproj
-pip install arrow
-pip install cx_Freeze --upgrade
-
