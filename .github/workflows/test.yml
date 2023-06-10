@@ -43,6 +43,18 @@ jobs:
         name: standalone
         path: ./notamproject
 
+    # Run the created standalone on windows
+    - name: run standalone
+      run: open /notamproject/notamplotter.exe
+    
+    # cd into the output folder
+    - name: cd into output
+      run: cd notamproject/output
+
+    # check if output
+    - name: ls output
+      run: ls
+
     # End note
     - name: print
       run: echo "Run completed."
