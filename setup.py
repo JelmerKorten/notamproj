@@ -14,12 +14,12 @@ options = {"build_exe": {"build_exe":"notamproject",
                         "include_files": ["support","output","files"]}}
 
 executables = [
-    Executable("clean_uiless.py"),
+    Executable("notamplotter.py"),
 ]
 
 setup(
-    name="uiless_test",
-    version="0.1.1",
+    name="notamplotter",
+    version="0.1.2",
     description="uiless script",
     executables=executables,
     options=options,
