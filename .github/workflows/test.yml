@@ -25,6 +25,10 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
 
+    # Setup chrome
+    - uses: browser-actions/setup-chrome@v1
+    - run: chrome --latest
+
     # Install requirements
     - name: install requirements
       run: pip install -r requirements.txt
