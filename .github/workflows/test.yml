@@ -2,13 +2,6 @@ name: Manual-Workflow
 
 on:
   workflow_dispatch:
-    inputs:
-      var_x:
-        description: 'var_x input'
-        required: true
-        default: 'default value for var_x'
-      var_y:
-        description: 'var_y description'
 
 jobs:
 
