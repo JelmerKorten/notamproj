@@ -34,11 +34,11 @@ jobs:
       run: python setup.py build
     
     # Upload artifact
-    - name: upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: standalone
-        path: ./notamproject
+    # - name: upload artifact
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: standalone
+    #     path: ./notamproject
 
     # Run the created standalone on windows
     - name: cd to project folder
