@@ -19,7 +19,7 @@ executables = [
 
 setup(
     name="notamplotter",
-    version="0.1.3",
+    version="0.1.4",
     description="uiless script",
     executables=executables,
     options=options,
