@@ -531,7 +531,7 @@ def back_traces(df,jdata,airports_str, filepath_out):
 
 # %% TO IMPORT -- collect(airports) -> write file Collects notams
 def collect(base, airports):
-    """Gets the notams in raw format from notams.gaa.gov and writes to file."""
+    """Gets the notams in raw format from notams.faa.gov and writes to file."""
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
