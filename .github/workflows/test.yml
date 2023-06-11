@@ -49,8 +49,8 @@ jobs:
       run: ls
 
     - name: run exe
-      working-directory: ./notamproject
-      run: notamplotter.exe
+      # working-directory: ./notamproject
+      run: ./notamproject/notamplotter.exe
 
     # # cd into the output folder
     # - name: cd into output
