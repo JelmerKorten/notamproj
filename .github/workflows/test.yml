@@ -44,6 +44,9 @@ jobs:
     - name: cd to project folder
       run: cd notamproject
 
+    - name: print contents
+      run: ls
+
     - name: run exe
       run: open notamplotter.exe
 
