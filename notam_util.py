@@ -607,7 +607,7 @@ def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
     back_traces(df,jdata,airports_str,filepath_out)
 
 
-# %% TO IMPORT IN UILESS -- cleanup() projectdir -> deletes files older than 5 days                
+# %% TO IMPORT IN NOTAMPLOTTER -- cleanup() projectdir -> deletes files older than 5 days                
 def cleanup(base, DAYS):
     """To walk through files and output dir to delete files older than DAYS days."""
     # Folders to check
