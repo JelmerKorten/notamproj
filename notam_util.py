@@ -549,7 +549,7 @@ def back_traces(df,jdata,airports_str, filepath_out):
 
 
 
-# %% TO IMPORT -- collect(airports) -> write file Collects notams
+# %% TO IMPORT -- collect(base, airports) -> write file Collects notams
 def collect(base, airports):
     """Gets the notams in raw format from notams.faa.gov and writes to file."""
 

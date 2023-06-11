@@ -29,7 +29,35 @@ import tkinter as tk
 
 import notam_util as nu
 import os
+import sys
 from datetime import date
+
+
+# Func to get dir of executable
+def find_data_file():
+    if getattr(sys, "frozen", False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+    return datadir
+
+ROOT = find_data_file()
+
+# Fetch today
+today = date.today()
+today_str = today.strftime("%Y%m%d")
+# abu dhabi, omae fir, bateen, al dhafra
+airports = ['omaa','omae','omad','omam']
+
+# Files url
+airports_str = "_".join(airports)
+FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{airports_str}.csv")
+
+# Output url
+OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{airports_str}.html")
 
 
 class App(ctk.CTk):
@@ -48,6 +76,7 @@ class App(ctk.CTk):
         self.airports = "omae omaa omad"
         self.airport_str = "_".join(self.airports.split(" "))
         self.current_frame = None
+        self.ROOT = ROOT
 
         # Create initial frame
         self.frame1 = ctk.CTkFrame(self)
@@ -106,18 +135,21 @@ class App(ctk.CTk):
 
 
     def collect_frame2(self):
-        nu.collect(self.airports)
+        nu.collect(self.ROOT, self.airports) 
         self.current_frame.pack_forget()
         self.frame3.pack()
         self.current_frame = self.frame3
 
 
     def collect_frame1(self):
-        today = date.today().strftime("%Y%m%d")
-        url = f"files/{today}_notams_{'_'.join(self.airports.split(' '))}.csv"
+        # today = date.today().strftime("%Y%m%d")
+        
+        # url = f"files/{today}_notams_{'_'.join(self.airports.split(' '))}.csv"
         self.airports = self.entry.get()
         self.airport_str = '_'.join(self.airports.split(' '))
-        if os.path.isfile(url):
+        FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
+        
+        if os.path.isfile(FILE_URL):
             self.current_frame.pack_forget()
             self.frame2.pack()
             self.current_frame = self.frame2
@@ -126,14 +158,18 @@ class App(ctk.CTk):
     def plot_func(self):
         today = date.today().strftime("%Y%m%d")
         url = f"files/{today}_notams_{self.airport_str}.csv"
-        if os.path.isfile(url):
-            nu.handle(airports_str=self.airport_str)
+        self.airport_str = '_'.join(self.airports.split(' '))
+        FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
+        # Output url
+        OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{self.airport_str}.html")
+        if os.path.isfile(FILE_URL):
+            nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
         else:
-            nu.collect(self.airports)
-            nu.handle(airports_str=self.airport_str)
+            nu.collect(ROOT, self.airports)
+            nu.handle(filepath_in=FILE_URL,filepath_out=OUTPUT_FILE,  airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
