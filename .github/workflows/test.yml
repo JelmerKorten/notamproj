@@ -45,11 +45,12 @@ jobs:
     #   run: cd notamproject
 
     - name: print contents
+      working-directory: ./notamproject
       run: ls
 
     - name: run exe
       working-directory: ./notamproject
-      run: open notamplotter.exe
+      run: notamplotter.exe
 
     # # cd into the output folder
     # - name: cd into output
