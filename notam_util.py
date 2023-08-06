@@ -43,6 +43,75 @@ from datetime import date
 import os
 
 
+# imports for updating chromedriver version
+import json, requests, zipfile, io
+from __version__ import chromedriver_mainversion, chrome_version, install_path
+
+# chrome_version = '115.0.5790.114'
+chrome_mainversion = chrome_version.split(".")[0]
+
+
+def update_chromedriver():
+    with open("chromeversions.json", "r") as file:
+        dct = json.load(file)
+
+    for item in dct['channels']['Stable']['downloads']['chromedriver']:
+        if item['platform'] == 'mac-x64':
+            if chrome_mainversion in item['url']:
+                zip_file_url = item['url']
+            
+    r = requests.get(zip_file_url)
+    if r.ok:
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall("support")
+    print("Done downloading chromedriver")
+    print("You'll find it in the >support< folder")
+    print("....")
+    print("Giving permissions")
+    chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
+    try:
+        os.chmod(chromedriver_path, 0o755)
+        print("permissions given")
+    except:
+        print("unable to give permissions, program might not run")
+    
+
+def check_update():
+    """to check if update required"""
+
+    if chromedriver_mainversion == chrome_mainversion:
+        return False
+    elif chromedriver_mainversion > chrome_mainversion:
+        print("uhoh, your chromedriver is a higher version than chrome")
+        return
+    else:
+        return True
+    
+
+def get_versions():
+    jsonpath = 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
+
+    my_versions = requests.get(jsonpath)
+    if my_versions:
+        my_versions = my_versions.json()
+        with open("chromeversions.json", "w") as file:
+            json.dump(my_versions, file, indent = "")
+
+        print("Done getting new versions json")
+    else:
+        print("Unable to load latest versions")
+        print("Please go to chromedriver.chromium.org")
+        print("To update chromedriver manually")
+        
+
+#%% USED HERE -- dealwithchrome()
+def dealwithchrome():
+    if check_update():
+        get_versions()
+        update_chromedriver()
+        
+
+
 #%% USED HERE -- convert_coords(latlon)
 def convert_coords(latlon: str) -> tuple:
     """Function converts coords string to decimal tuple.
@@ -282,7 +351,7 @@ def add_multiple_circles(df):
             lat_res = [m.group() for m in lat_matches]
             lon_matches = re.finditer(r"\d{7}(?:\.\d+)?[EW]", df.iloc[i].english)
             lon_res = [m.group() for m in lon_matches]
-            radius_matches = re.search(r"\bRADIUS\b\s\d+(?:\.\d+)?\s\b[a-zA-Z]+\b", df.iloc[i].english).group()
+            radius_matches = re.search(r"\bRADIUS\b\s\d+(?:\.\d+)?\s?[a-zA-Z]+\b", df.iloc[i].english).group()
             coord_matches = [lat_res[i] + " " + lon_res[i] for i in range(len(lat_res))]
             cur_list.append(radius_matches)
             cur_list.append(coord_matches)
@@ -550,8 +619,12 @@ def back_traces(df,jdata,airports_str, filepath_out):
 
 
 # %% TO IMPORT -- collect(base, airports) -> write file Collects notams
-def collect(base, airports):
+def collect(base, airports:str):
     """Gets the notams in raw format from notams.faa.gov and writes to file."""
+    
+    # updates chromedriver if needed
+    dealwithchrome()
+    
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
@@ -573,10 +646,14 @@ def collect(base, airports):
     if sys_name == "Windows":
         chromedriver_url = os.path.join(chromedriver_url, "chromedriver_win32", "chromedriver.exe")
     else:
-        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_mac64", "chromedriver")
-        
+        chromedriver_url = os.path.join(chromedriver_url, "chromedriver-mac-x64", "chromedriver")
+    
+    # fix needed since chrome 115
+    options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     ser = Service(chromedriver_url)
-    driver = webdriver.Chrome(service=ser, options=options)
+    driver = webdriver.Chrome(service=ser, executable_path=install_path, options=options)
+
+
 
     # navigate to site
     URL = "https://www.notams.faa.gov/dinsQueryWeb/"
