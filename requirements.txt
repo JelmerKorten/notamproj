@@ -28,3 +28,5 @@ trio-websocket==0.10.2
 urllib3==1.26.15
 wsproto==1.2.0
 zstandard==0.21.0
+requests==2.31.0
+charset-normalizer==3.2.0
