@@ -146,10 +146,13 @@ class App(ctk.CTk):
         
         # url = f"files/{today}_notams_{'_'.join(self.airports.split(' '))}.csv"
         self.airports = self.entry.get()
+        print(self.airports)
         self.airport_str = '_'.join(self.airports.split(' '))
         FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
+        nu.collect(ROOT, self.airports)
         
         if os.path.isfile(FILE_URL):
+            print("IF STATEMENT RUNS")
             self.current_frame.pack_forget()
             self.frame2.pack()
             self.current_frame = self.frame2
