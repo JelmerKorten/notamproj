@@ -30,6 +30,9 @@ files/*_notams_*
 output/*_notams_*
 ziptesting.py
 ziptest
+Archive.zip
+myzip.zip
+myzip
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
