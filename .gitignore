@@ -28,6 +28,8 @@ deprecated
 wip
 files/*_notams_*
 output/*_notams_*
+ziptesting.py
+ziptest
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos
