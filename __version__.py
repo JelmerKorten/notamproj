@@ -1,5 +1,5 @@
 '''Version info'''
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 name = "Notamplotter"
 description = "Plots notams on an interactive standalone .html"
 authors = ["Jelmer Korten", "korty.codes"]
@@ -8,11 +8,18 @@ readme = "README.md"
 
 
 import os
+import logging
+logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
+
+logger = logging.getLogger(__name__)
+
+
 
 # google chrome version
 install_path = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 chrome_version = os.popen(f"{install_path} --version").read().strip('Google Chrome ').strip()
 print(chrome_version)
+logger.info(f"Current Chrome version: {chrome_version}")
 
 # chrome driver version
 chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
@@ -20,6 +27,25 @@ chromedriver_version = os.popen(f"{chromedriver_path} --version").read().split()
 
 chromedriver_mainversion = chromedriver_version.split(".")[0]
 print(chromedriver_mainversion)
+logger.info(f"Current chromedriver mainversion: {chromedriver_mainversion}")
+
+
+
+
+version_0_1_4 = """20230827 - Addition of version notes."""
+version_0_1_3 = """20230826 - Latest version bump is due to the addition of logging, no other changes besides that and it will not affect operations."""
+version_0_1_2 = """20230803 - Added some small print statements."""
+version_0_1_1 = """20230728 - Refined chromedriver checking."""
+version_0_1_0 = """20230725 - Added automatic check to update chromedriver when Google Chrome is updated."""
+version_0_0_0 = """20230701 - Introduced versions."""
+
+
+version_history = (
+    version_0_1_4, version_0_1_3, version_0_1_2, version_0_1_1, version_0_1_0,
+    version_0_0_0
+    )
+
+
 
 
 
