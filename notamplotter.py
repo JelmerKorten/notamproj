@@ -21,7 +21,9 @@ import notam_util as nu
 from datetime import date
 import os
 import sys
-
+import logging
+logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger(__name__)
 
 
 # Func to get dir of executable
@@ -41,6 +43,7 @@ ROOT = find_data_file()
 # main
 def main(ROOT):
     # Clean up folders to save memory
+    logger.info("Calling nu.cleanup()")
     nu.cleanup(base=ROOT, DAYS=5)
 
     # Fetch today
@@ -56,11 +59,15 @@ def main(ROOT):
     OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{airports_str}.html")
 
     if os.path.isfile(OUTPUT_FILE):
+        logger.info("file already exists")
         sys.exit()
     elif os.path.isfile(FILE_URL):
+        logger.info("csv alrdy exist, creating file from that")
         nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
     else:
+        logger.info("calling nu.collect() to create .csv")
         nu.collect(base=ROOT, airports=airports_str)
+        logger.info("calling nu.handle() to create .html")
         nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE,  airports_str=airports_str)
 
 if __name__ == "__main__":

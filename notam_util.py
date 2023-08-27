@@ -26,6 +26,9 @@ import textwrap
 import arrow
 from pathlib import Path
 from platform import system as ps
+import logging
+logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger(__name__)
 
 # imports for Create Circle point buffer
 from shapely.geometry import Point
@@ -52,6 +55,7 @@ chrome_mainversion = chrome_version.split(".")[0]
 
 
 def update_chromedriver():
+    
     with open("chromeversions.json", "r") as file:
         dct = json.load(file)
 
@@ -64,6 +68,9 @@ def update_chromedriver():
     if r.ok:
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall("support")
+    logger.info("Done downloading chromedriver")
+    logger.info("You'll find it in the >support< folder")
+    logger.info("Giving file permissions")
     print("Done downloading chromedriver")
     print("You'll find it in the >support< folder")
     print("....")
@@ -72,19 +79,24 @@ def update_chromedriver():
     try:
         os.chmod(chromedriver_path, 0o755)
         print("permissions given")
+        logger.info("File Permissions given")
     except:
         print("unable to give permissions, program might not run")
+        logger.warning("Unable to give permissions, program might not run")
     
 
 def check_update():
     """to check if update required"""
-
+    logger.info("running check_update")
     if chromedriver_mainversion == chrome_mainversion:
+        logger.info("No need to update, mainversions are the same")
         return False
     elif chromedriver_mainversion > chrome_mainversion:
         print("uhoh, your chromedriver is a higher version than chrome")
+        logger.warning("Your chromedriver is a higher than chrome, program might not run")
         return
     else:
+        logger.debug("Update needed..")
         return True
     
 
@@ -98,14 +110,18 @@ def get_versions():
             json.dump(my_versions, file, indent = "")
 
         print("Done getting new versions json")
+        logger.info("Getting new versions file from github")
     else:
         print("Unable to load latest versions")
         print("Please go to chromedriver.chromium.org")
         print("To update chromedriver manually")
+        logger.warning("Unable to load latest versions")
+        logger.warning("Please go to chromedriver.chromium.org to update manually")
         
 
 #%% USED HERE -- dealwithchrome()
 def dealwithchrome():
+    logger.info("Checking to see if we need to update chromedriver")
     if check_update():
         get_versions()
         update_chromedriver()
@@ -614,6 +630,7 @@ def back_traces(df,jdata,airports_str, filepath_out):
 
     # write file
     fig.write_html(filepath_out, full_html=True)
+    logger.info('html file created in output folder')
 
 
 
@@ -621,7 +638,7 @@ def back_traces(df,jdata,airports_str, filepath_out):
 # %% TO IMPORT -- collect(base, airports) -> write file Collects notams
 def collect(base, airports:str):
     """Gets the notams in raw format from notams.faa.gov and writes to file."""
-    
+    logger.info("running collect()")
     # updates chromedriver if needed
     dealwithchrome()
     
@@ -645,6 +662,7 @@ def collect(base, airports:str):
     # system dependent
     if sys_name == "Windows":
         chromedriver_url = os.path.join(chromedriver_url, "chromedriver_win32", "chromedriver.exe")
+        logger.info("running on windows")
     else:
         chromedriver_url = os.path.join(chromedriver_url, "chromedriver-mac-x64", "chromedriver")
     
@@ -693,20 +711,28 @@ def collect(base, airports:str):
 
     with open(FILE_URL, 'w') as file: # original: url,  mode: "w+"
         file.write(current_notams)
+    logger.info("csv file created")
 
 # %% TO IMPORT -- handle() file -> notams output
 def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
+    logger.info("running handle()")
     df = readnotams(filepath_in, airports_str)
+    logger.info("Notams read.")
     df = add_polygons(df)
+    logger.info("polygons added")
     df = add_multiple_circles(df)
+    logger.info("multiple circles added")
     df = split_circles_add_indices(df)
+    logger.info("circles split")
     jdata = create_jdata(df)
+    logger.info("jdata created")
     back_traces(df,jdata,airports_str,filepath_out)
 
 
 # %% TO IMPORT IN NOTAMPLOTTER -- cleanup() projectdir -> deletes files older than 5 days                
 def cleanup(base, DAYS):
     """To walk through files and output dir to delete files older than DAYS days."""
+    logger.info("running cleanup")
     # Folders to check
     folders = ['files', 'output']
     # Set the time from when to remove
@@ -724,4 +750,5 @@ def cleanup(base, DAYS):
             if arrow.get(item.stat().st_mtime) < remove_time:
                 # Remove the file
                 os.remove(item)
+                logger.info(f"Removing {item}")
 
