@@ -23,6 +23,8 @@ def check_update():
 
     # get chromedriver version
     # chromedriver_version = 113.0.5672.63
+    if not os.path.isdir('support/chromedriver_mac64/chromedriver'):
+        return True
     chromedriver_path = 'support/chromedriver_mac64/chromedriver'
     chromedriver_version = os.popen(f"{chromedriver_path} --version").read().split()[1]
     
@@ -39,6 +41,10 @@ def check_update():
     
 
 def get_versions():
+    """
+    Downloads latest chromedriver versions from their site
+    """
+    
     jsonpath = 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
 
     my_versions = requests.get(jsonpath)

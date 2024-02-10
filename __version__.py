@@ -6,23 +6,100 @@ authors = ["Jelmer Korten", "korty.codes"]
 license = "GNU GPL3"
 readme = "README.md"
 
-
+import requests
+import zipfile
+import json
+import io
 import os
 import logging
 logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
 
 logger = logging.getLogger(__name__)
-
-
-
 # google chrome version
 install_path = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 chrome_version = os.popen(f"{install_path} --version").read().strip('Google Chrome ').strip()
 print(chrome_version)
 logger.info(f"Current Chrome version: {chrome_version}")
+chrome_mainversion = chrome_version.split(".")[0]
+
+def update_chromedriver():
+    
+    with open("chromeversions.json", "r") as file:
+        dct = json.load(file)
+
+    for item in dct['channels']['Stable']['downloads']['chromedriver']:
+        if item['platform'] == 'mac-x64':
+            if chrome_mainversion in item['url']:
+                zip_file_url = item['url']
+            
+    r = requests.get(zip_file_url)
+    if r.ok:
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall("support")
+    logger.info("Done downloading chromedriver")
+    logger.info("You'll find it in the >support< folder")
+    logger.info("Giving file permissions")
+    print("Done downloading chromedriver")
+    print("You'll find it in the >support< folder")
+    print("....")
+    print("Giving permissions")
+    chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
+    try:
+        os.chmod(chromedriver_path, 0o755)
+        print("permissions given")
+        logger.info("File Permissions given")
+    except:
+        print("unable to give permissions, program might not run")
+        logger.warning("Unable to give permissions, program might not run")
+    
+
+def check_update():
+    """to check if update required"""
+    logger.info("running check_update")
+    if chromedriver_mainversion == chrome_mainversion:
+        logger.info("No need to update, mainversions are the same")
+        return False
+    elif chromedriver_mainversion > chrome_mainversion:
+        print("uhoh, your chromedriver is a higher version than chrome")
+        logger.warning("Your chromedriver is a higher than chrome, program might not run")
+        return
+    else:
+        logger.debug("Update needed..")
+        return True
+    
+
+def get_versions():
+    jsonpath = 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
+
+    my_versions = requests.get(jsonpath)
+    if my_versions:
+        my_versions = my_versions.json()
+        with open("chromeversions.json", "w") as file:
+            json.dump(my_versions, file, indent = "")
+
+        print("Done getting new versions json")
+        logger.info("Getting new versions file from github")
+    else:
+        print("Unable to load latest versions")
+        print("Please go to chromedriver.chromium.org")
+        print("To update chromedriver manually")
+        logger.warning("Unable to load latest versions")
+        logger.warning("Please go to chromedriver.chromium.org to update manually")
+        
+
+
+
 
 # chrome driver version
-chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
+chromedriver_folder = 'support/chromedriver-mac-x64'
+if not os.path.isdir(chromedriver_folder):
+    os.makedirs(chromedriver_folder)
+    get_versions()
+    update_chromedriver()
+
+chromedriver_path = os.path.join(chromedriver_folder, "chromedriver")
+print(chromedriver_path)
+
 chromedriver_version = os.popen(f"{chromedriver_path} --version").read().split()[1]
 
 chromedriver_mainversion = chromedriver_version.split(".")[0]
