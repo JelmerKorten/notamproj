@@ -32,23 +32,6 @@ logger.info(f"Current chromedriver mainversion: {chromedriver_mainversion}")
 
 
 
-version_0_1_4 = """20230827 - Addition of version notes."""
-version_0_1_3 = """20230826 - Latest version bump is due to the addition of logging, no other changes besides that and it will not affect operations."""
-version_0_1_2 = """20230803 - Added some small print statements."""
-version_0_1_1 = """20230728 - Refined chromedriver checking."""
-version_0_1_0 = """20230725 - Added automatic check to update chromedriver when Google Chrome is updated."""
-version_0_0_0 = """20230701 - Introduced versions."""
-
-
-version_history = (
-    version_0_1_4, version_0_1_3, version_0_1_2, version_0_1_1, version_0_1_0,
-    version_0_0_0
-    )
-
-
-
-
-
 # so I can remember
 # Release Type
 # Version Bump
