@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Moved changelog info from versions file to changelog
+- Cleaned some files that were no longer needed
 
 
 
