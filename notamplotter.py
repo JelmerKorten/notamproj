@@ -33,7 +33,6 @@ def find_data_file():
         datadir = os.path.dirname(sys.executable)
     else:
         # The application is not frozen
-        # Change this bit to match where you store your data files:
         datadir = os.path.dirname(__file__)
     return datadir
 
