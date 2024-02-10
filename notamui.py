@@ -98,7 +98,7 @@ class App(ctk.CTk):
         self.entry.grid(row=0,column=0,columnspan=4, padx=(10,10), pady=(10,10), sticky="nsew")
         
         # Create 2 buttons for frame1
-        self.collect_button = ctk.CTkButton(self.frame1, text = "Collect Notams", command = lambda: self.collect_frame1())
+        self.collect_button = ctk.CTkButton(self.frame1, text = "Collect Notams", command = self.collect_frame1)
         self.collect_button.grid(row=1,column=1,columnspan=1, padx=(10,5), pady=(10,10), sticky="nsew")
         self.plot_button = ctk.CTkButton(self.frame1, text = "Create Plot File", command = self.plot_func)
         self.plot_button.grid(row=1,column=3,columnspan=1, padx=(5,10), pady=(10,10), sticky="nsew")
@@ -106,7 +106,7 @@ class App(ctk.CTk):
         # Create 2 buttons for frame2
         self.label = ctk.CTkLabel(self.frame2, text="File already exists\n\nOverwrite Current file and\nget new notams or\nUse Existing")
         self.label.grid(row=0,column=0,columnspan=2, padx=(10,10), pady=(10,10), sticky="nsew")
-        self.get_anyway = ctk.CTkButton(self.frame2, text="Overwrite Current", command= lambda: self.collect_frame2())
+        self.get_anyway = ctk.CTkButton(self.frame2, text="Overwrite Current", command = self.collect_frame2)
         self.get_anyway.grid(row=1,column=0,columnspan=1, padx=(10,5), pady=(10,10), sticky="nsew")
         self.plot_current = ctk.CTkButton(self.frame2, text="Use Existing", command=self.plot_func)
         self.plot_current.grid(row=1,column=1,columnspan=1, padx=(5,10), pady=(10,10), sticky="nsew")
@@ -143,7 +143,7 @@ class App(ctk.CTk):
 
     def collect_frame1(self):
         # today = date.today().strftime("%Y%m%d")
-        
+        print("We're in collect_frame1")
         # url = f"files/{today}_notams_{'_'.join(self.airports.split(' '))}.csv"
         self.airports = self.entry.get()
         print(self.airports)
@@ -159,10 +159,15 @@ class App(ctk.CTk):
 
 
     def plot_func(self):
-        today = date.today().strftime("%Y%m%d")
-        url = f"files/{today}_notams_{self.airport_str}.csv"
+        # today = date.today().strftime("%Y%m%d")
+        self.airports = self.entry.get()
+        # print(self.airports)
         self.airport_str = '_'.join(self.airports.split(' '))
         FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
+        # nu.collect(ROOT, self.airports)
+        # url = f"files/{today}_notams_{self.airport_str}.csv"
+        # self.airport_str = '_'.join(self.airports.split(' '))
+        # FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
         # Output url
         OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{self.airport_str}.html")
         if os.path.isfile(FILE_URL):
