@@ -242,8 +242,13 @@ def readnotams(filepath = None, airports_str="omaa"):
     notam_dict = {}
     for i in range(len(startlines)-1):
         notam_dict.update({current_notams[startlines[i]]: current_notams[startlines[i]+1:startlines[i+1]-1]})
-    notam_dict.update({current_notams[startlines[-1]]: current_notams[startlines[-1]:endlines[-1]+1]})
-
+    try:
+        notam_dict.update({current_notams[startlines[-1]]: current_notams[startlines[-1]:endlines[-1]+1]})
+    except:
+        print("No Notams downloaded, unable to process. This is most likely due to the new headless feature")
+        logger.debug("No Notams downloaded. Check Headless feature and rewrite access code.")
+        logger.debug("exiting program")
+        exit()
 
     choices = list(notam_dict.keys())
 
@@ -654,7 +659,8 @@ def collect(base, airports:str):
 
     options = Options()
     # do not open an instance of google chrome
-    options.headless = True
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
     # get system name
     sys_name = ps()
     chromedriver_url = os.path.join(base, "support")
@@ -669,7 +675,7 @@ def collect(base, airports:str):
     # fix needed since chrome 115
     options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     ser = Service(chromedriver_url)
-    driver = webdriver.Chrome(service=ser, executable_path=install_path, options=options)
+    driver = webdriver.Chrome(service=ser, options=options)
 
 
 

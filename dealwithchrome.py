@@ -1,11 +1,13 @@
 import json, os, requests, zipfile, io
 
 # get my chrome version
-chrome_path = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+# old chrome_path = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+chrome_path = r"/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 
 chrome_version = os.popen(f"{chrome_path} --version").read().strip('Google Chrome ').strip()
+print("chrome version", chrome_version)
 
-# my_version = '115.0.5790.114'
+# my_version = '137.0.7151.120'
 chrome_mainversion = chrome_version.split(".")[0]
 
 def check_update():
@@ -17,19 +19,24 @@ def check_update():
 
     # chrome_version = os.popen(f"{chrome_path} --version").read().strip('Google Chrome ').strip()
 
-    # # my_version = '115.0.5790.114'
+    # # my_version = '137.0.7151.120'
     # chrome_mainversion = chrome_version.split(".")[0]
 
 
     # get chromedriver version
-    # chromedriver_version = 113.0.5672.63
-    if not os.path.isdir('support/chromedriver_mac64/chromedriver'):
-        return True
-    chromedriver_path = 'support/chromedriver_mac64/chromedriver'
-    chromedriver_version = os.popen(f"{chromedriver_path} --version").read().split()[1]
-    
-    chromedriver_mainversion = chromedriver_version.split(".")[0]
+    # chromedriver_version = 138.0.7204.49
 
+    print(f"os.path: {os.path}")
+    if not os.path.isdir('support/chromedriver-mac-x64'):
+        print("no path")
+        return True
+    chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
+    # allow version
+    os.chmod(chromedriver_path, 0o755)
+    chromedriver_version = os.popen(f"{chromedriver_path} --version").read().split()[1]
+    print(f"Chromedriver version: {chromedriver_version}")
+    chromedriver_mainversion = chromedriver_version.split(".")[0]
+    print(f"chrome_mainversion: {chrome_mainversion}")
 
     if chromedriver_mainversion == chrome_mainversion:
         return False
@@ -63,6 +70,8 @@ def get_versions():
 def update_chromedriver():
     with open("chromeversions.json", "r") as file:
         dct = json.load(file)
+    
+    # print(dct)
 
     for item in dct['channels']['Stable']['downloads']['chromedriver']:
         if item['platform'] == 'mac-x64':
