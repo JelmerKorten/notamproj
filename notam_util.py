@@ -44,6 +44,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from datetime import date
 import os
+import time
+import pypdf
 
 
 # imports for updating chromedriver version
@@ -486,7 +488,7 @@ def create_jdata(df):
 
 
 
-#%% back_traces(df,jdata) -> output/yyyymmdd_notams_fields.html
+# %% back_traces(df,jdata) -> output/yyyymmdd_notams_fields.html
 def back_traces(df,jdata,airports_str, filepath_out):
     """Takes in the df and the create jdata.
     Plots the required shapes on the plot.
@@ -758,3 +760,181 @@ def cleanup(base, DAYS):
                 os.remove(item)
                 logger.info(f"Removing {item}")
 
+
+# %% TO IMPORT -- check -> True / False Will check if invalid query present in file
+def successfull_notam_fetch(filepath = None, airports_str="omaa_omae_omad_omam"):
+    """Will check to see if notam fetch was successfull"""
+    if filepath == None:
+        today = date.today().strftime("%Y%m%d")
+        filepath = f"files/{today}_notams_{airports_str}.csv"
+
+    with open(filepath) as file:
+        current_notams = file.readlines()
+    for line in current_notams:
+        if "Invalid Query Request" in line:
+            return False
+    return True
+
+
+# %% TO IMPORT -- alternative website to fetch notams when FAA site not working.
+def alternative(base, filepath = None, airports:str = "omaa"):
+    """To fetch notams from alternative site when primary site not working."""
+    logger.info("running nu.alternative()")
+
+    # updates chromedriver if needed
+    dealwithchrome()
+    
+
+    # check if file doesnt exist yet
+    today = date.today().strftime("%Y%m%d")
+    airports = airports.replace("_", " ")
+    airports_str = "_".join(airports.split(" "))
+
+    FOLDER_URL = os.path.join(base, "files")
+    print(FOLDER_URL)
+
+    # create output url
+    FILE_URL = os.path.join(base, "files", f"{today}_notams_{airports_str}.csv")
+
+    # to remove old file so we can wait for the download later.
+    try:
+        os.remove(FILE_URL)
+    except FileNotFoundError:
+        print("file not found")
+    except OSError as e:
+        print("error", e)
+    # url = SUBURL / f"{today}_notams_{airports_str}.csv"
+
+    options = Options()
+    # do not open an instance of google chrome
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    # get system name
+    sys_name = ps()
+    chromedriver_url = os.path.join(base, "support")
+    
+    # system dependent
+    if sys_name == "Windows":
+        chromedriver_url = os.path.join(chromedriver_url, "chromedriver_win32", "chromedriver.exe")
+        logger.info("running on windows")
+    else:
+        chromedriver_url = os.path.join(chromedriver_url, "chromedriver-mac-x64", "chromedriver")
+    
+    # fix needed since chrome 115
+    options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    ser = Service(chromedriver_url)
+    
+    download_dir = os.path.join(base, "files")
+    download_prefs = {"download.default_directory": download_dir,
+                      "download.prompt_for_download": False}
+    options.add_experimental_option("prefs", download_prefs)
+    driver = webdriver.Chrome(service=ser, options=options)
+
+    # navigate to site
+    URL = "https://www.gcaa.gov.ae/en/ais/Pages/notam.aspx"
+    driver.get(URL)
+
+    XPATH = """//*[@id="taskInfo"]/tbody/tr[1]/td[5]/a[2]/i"""
+    inputElement = driver.find_element('xpath',XPATH)
+    inputElement.click()
+
+    start_time = time.time()
+
+
+    START_STRING = "OMAE_ValidNOTAM"
+
+    while time.time() - start_time < 10:
+        for filename in os.listdir(FOLDER_URL):
+            if filename.startswith(START_STRING) and not filename.endswith(".crdownload"):
+                # print("file found")
+                break
+        time.sleep(1)
+
+    # close current tab
+    driver.close()
+    
+
+    logger.info("pdf file downloaded")
+
+
+# %% read gcaa pdf
+def read_gcaa_pdf(base):
+    folder = os.path.join(base, "files")
+    files = os.listdir(folder)
+    paths = [os.path.join(folder, basename) for basename in files if basename.startswith("OMAE")]
+    latest_pdf = max(paths, key = os.path.getmtime)
+
+
+
+    try:
+        with open(latest_pdf, 'rb') as file:
+            # Create a PdfReader object
+            reader = pypdf.PdfReader(file)
+
+            notams = []
+            for i in range(len(reader.pages)):
+
+                page = reader.pages[i]
+                page = page.extract_text(extraction_mode="layout")
+                page = page.splitlines()
+            
+                leftsplit = []
+                rightsplit = []
+                disclaimer_finish = False
+                for line in page:
+                    if not disclaimer_finish:
+                        if re.search(r"^[A-Z]\d{4}\/\d{2}", line):
+                            disclaimer_finish = True
+                    if disclaimer_finish:
+                        splits = re.split(r"\040{9,}", line)
+                        # print(splits)
+                        if len(splits) == 1:
+                            leftsplit.append(splits[0])
+                        elif len(splits) == 2:
+                            leftsplit.append(splits[0])
+                            rightsplit.append(splits[1])
+                
+                notams.append(leftsplit)
+                notams.append(rightsplit)
+            
+
+    except FileNotFoundError:
+        print(f"Error: '{latest_pdf}' not found. Please ensure the file exists.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    # exit()
+
+
+    notams_cleaned = []
+    currentnotam = []
+    has_started = False
+    for line in notams:
+        for item in line:    
+            if item == "":
+                continue
+            elif item.startswith("As of"):
+                continue
+            elif re.match(r"^\d{,3}$", item):
+                continue
+            elif re.search(r"^[A-Z]\d{4}\/\d{2}", item):
+                has_started = True
+                if len(currentnotam) > 2:
+                    notams_cleaned.append(currentnotam)
+                    currentnotam = []
+            if has_started:
+                currentnotam.append(item)
+    if len(currentnotam) > 2:
+        notams_cleaned.append(currentnotam)
+
+    # print(notams_cleaned)
+    print(f"total notams found: {len(notams_cleaned)}")
+    today = date.today().strftime("%Y%m%d")
+    newfilename = os.path.join(folder,f"OMAE_notams_{today}.csv")
+
+    with open(newfilename, "w") as file:
+        for notam in notams_cleaned:
+            for line in notam:
+                file.write(line)
+                file.write("\n")
+            file.write("\n")

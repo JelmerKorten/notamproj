@@ -43,7 +43,7 @@ ROOT = find_data_file()
 # main
 def main(ROOT):
     # Clean up folders to save memory
-    logger.info("Calling nu.cleanup()")
+    logger.info("calling nu.cleanup()")
     nu.cleanup(base=ROOT, DAYS=5)
 
     # Fetch today
@@ -58,17 +58,28 @@ def main(ROOT):
     # Output url
     OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{airports_str}.html")
 
-    if os.path.isfile(OUTPUT_FILE):
+    file_integrity = nu.successfull_notam_fetch()
+    if os.path.isfile(OUTPUT_FILE) and file_integrity:
         logger.info("file already exists")
         sys.exit()
-    elif os.path.isfile(FILE_URL):
+    elif os.path.isfile(FILE_URL) and file_integrity:
         logger.info("csv alrdy exist, creating file from that")
         nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
     else:
         logger.info("calling nu.collect() to create .csv")
         nu.collect(base=ROOT, airports=airports_str)
-        logger.info("calling nu.handle() to create .html")
-        nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE,  airports_str=airports_str)
+        logger.info("calling nu.successfull_notam_fetch() to see if file success.")
+        if nu.successfull_notam_fetch():
+            logger.info("notam fetch seems successfull. continueing.")
+            logger.info("calling nu.handle() to create .html")
+            nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE,  airports_str=airports_str)
+        else:
+            logger.info("notam fetch seems invalid. fetching from other site.")
+            logger.info("calling nu.alternative()")
+            nu.alternative(ROOT, airports=airports_str)
+            logger.info("reading gcaa pdf")
+            nu.read_gcaa_pdf(ROOT)
+            
 
 if __name__ == "__main__":
     main(ROOT)
