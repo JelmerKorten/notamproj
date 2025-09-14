@@ -4,6 +4,7 @@ import os
 from datetime import date
 import textwrap
 import re
+import notam_util as nu
 
 def readgcaacsv(filepath = None):
     today = date.today().strftime("%Y%m%d")
@@ -97,13 +98,27 @@ def readgcaacsv(filepath = None):
 
     notam_dict.update(current_notam)
 
-    for k,v in notam_dict.items():
-        print(f"name {k}")
-        print(v)
-        print()
+    # for k,v in notam_dict.items():
+    #     print(f"name {k}")
+    #     print(v)
+    #     print()
 
 
     # print(notams)
 
+    df = pd.DataFrame.from_dict(notam_dict, orient='index')
+    df['coords'] = ''
+    df['wrap'] = ""
+    for i in range(len(df)):
+        if df.loc[df.index[i],'english']:
+            df.at[df.index[i],'wrap'] = df.index[i]+"<br>"+"<br>".join(textwrap.wrap(df.loc[df.index[i],'english'],width=50))+"<br>Lower: "+str(df.loc[df.index[i],'lower'])+" -- Upper: "+str(df.loc[df.index[i],'upper'])+"<br>Dates From: "+str(df.loc[df.index[i],'start_date'])+" To: "+str(df.loc[df.index[i],'end_date'])+"<br>Times: "+str(df.loc[df.index[i],'times'])
+    print(df)
+    return df
 
-readgcaacsv("files/test.csv")
+# df = readgcaacsv("files/test.csv")
+
+# df = nu.add_polygons(df)
+# df = nu.add_multiple_circles(df)
+# df = nu.split_circles_add_indices(df)
+# print(df)
+# nu.create_jdata(df)

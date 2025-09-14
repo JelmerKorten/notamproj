@@ -524,6 +524,26 @@ files = [
 ]
 
 [[package]]
+name = "pypdf"
+version = "5.6.1"
+description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pypdf-5.6.1-py3-none-any.whl", hash = "sha256:ff09d03d37addbc40f75db3624997a660ff5fe41c61e7ae4db6828dc3f581e4d"},
+    {file = "pypdf-5.6.1.tar.gz", hash = "sha256:dde36cd67afe3afd733a562a0dd08a3c1dcdf01fe01de13785291319c8a883ff"},
+]
+
+[package.extras]
+crypto = ["cryptography"]
+cryptodome = ["PyCryptodome"]
+dev = ["black", "flit", "pip-tools", "pre-commit", "pytest-cov", "pytest-socket", "pytest-timeout", "pytest-xdist", "wheel"]
+docs = ["myst_parser", "sphinx", "sphinx_rtd_theme"]
+full = ["Pillow (>=8.0.0)", "cryptography"]
+image = ["Pillow (>=8.0.0)"]
+
+[[package]]
 name = "pyproj"
 version = "3.7.1"
 description = "Python interface to PROJ (cartographic projections and coordinate transformations library)"
@@ -874,4 +894,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13"
-content-hash = "11fa806774579180bf66de1014af6346ee5b9a9c0cfd102a80bd83f24e0ecd96"
+content-hash = "d81a0e1a2a79ff48d9ea10ede30cd519b087c23727bc0e56038daa16003121fc"

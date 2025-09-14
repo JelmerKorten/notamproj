@@ -10,6 +10,7 @@ clean_uiless.*
 deprecated
 deprecated/*
 files/*_notams_*
+files/OMAE_Valid*
 legend_test.html
 main.build
 main.dist
@@ -18,6 +19,7 @@ notamproject/*
 notamui.build
 notamui.dist
 output/*_notams_*
+output/OMAE_notams*
 support/
 support/*
 tabstest.py

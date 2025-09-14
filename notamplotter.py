@@ -78,7 +78,13 @@ def main(ROOT):
             logger.info("calling nu.alternative()")
             nu.alternative(ROOT, airports=airports_str)
             logger.info("reading gcaa pdf")
-            nu.read_gcaa_pdf(ROOT)
+            new_filename = nu.read_gcaa_pdf(ROOT)
+            filepath_out = new_filename.split("/")[-1]
+            filepath_out = filepath_out.split(".")[0]
+            filepath_out = "output/" + filepath_out + ".html"
+            nu.handle_gcaa(filepath_in = new_filename, filepath_out=filepath_out)
+
+            
             
 
 if __name__ == "__main__":
