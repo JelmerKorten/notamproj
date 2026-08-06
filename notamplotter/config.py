@@ -67,11 +67,18 @@ class Config:
     @classmethod
     def load(cls, base_dir: str | Path = ".") -> "Config":
         """Load config from file + env and return a :class:`Config`."""
-        load_dotenv(Path(base_dir) / ".env")
+        load_dotenv(_env_file(base_dir))
         merged = {name: getattr(cls(), name) for name in cls.__dataclass_fields__}
         merged = _apply_file(_load_file(base_dir), merged)
         merged = _apply_env(merged)
         return cls(**merged)
+
+
+def _env_file(base_dir: str | Path) -> Path:
+    """Return the ``.env`` path, falling back to ``.env.example`` if absent."""
+    base = Path(base_dir)
+    env = base / ".env"
+    return env if env.is_file() else base / ".env.example"
 
 
 def _load_file(base_dir: str | Path) -> dict:
