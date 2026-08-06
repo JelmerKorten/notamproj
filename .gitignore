@@ -5,10 +5,8 @@ __pycache__
 __pycache__/
 axis_test.html
 build
-chromeversions.json
 clean_uiless.*
-deprecated
-deprecated/*
+deprecated/support/
 files/*_notams_*
 files/OMAE_Valid*
 legend_test.html
@@ -26,7 +24,6 @@ tabstest.py
 tabtest.py
 tabtest.txt
 test.html
-tester.py
 wip
 wip/*
 wip_cleanup_test.*

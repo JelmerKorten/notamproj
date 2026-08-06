@@ -21,113 +21,27 @@
 #%% imports
 import re
 import copy
-import pandas as pd
-import textwrap
-import arrow
-from pathlib import Path
-from platform import system as ps
-import logging
-logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
-
-# imports for Create Circle point buffer
-from shapely.geometry import Point
-from pyproj import Transformer
-from shapely.ops import transform
-
-# import for plotly
-import plotly.graph_objects as go
-
-# imports for collect
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from datetime import date
 import os
 import time
+import textwrap
+import arrow
+import pandas as pd
 import pypdf
+import plotly.graph_objects as go
+from datetime import date
+from pathlib import Path
+from platform import system as ps
 
+from pyproj import Transformer
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from shapely.geometry import Point
+from shapely.ops import transform
 
-# imports for updating chromedriver version
-import json, requests, zipfile, io
-from __version__ import chromedriver_mainversion, chrome_version, install_path
+from notamplotter._logging import get_logger
 
-# chrome_version = '115.0.5790.114'
-chrome_mainversion = chrome_version.split(".")[0]
-print(chrome_mainversion)
-
-def update_chromedriver():
-    
-    with open("chromeversions.json", "r") as file:
-        dct = json.load(file)
-
-    for item in dct['channels']['Stable']['downloads']['chromedriver']:
-        if item['platform'] == 'mac-x64':
-            if chrome_mainversion in item['url']:
-                zip_file_url = item['url']
-            
-    r = requests.get(zip_file_url)
-    if r.ok:
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        z.extractall("support")
-    logger.info("Done downloading chromedriver")
-    logger.info("You'll find it in the >support< folder")
-    logger.info("Giving file permissions")
-    print("Done downloading chromedriver")
-    print("You'll find it in the >support< folder")
-    print("....")
-    print("Giving permissions")
-    chromedriver_path = 'support/chromedriver-mac-x64/chromedriver'
-    try:
-        os.chmod(chromedriver_path, 0o755)
-        print("permissions given")
-        logger.info("File Permissions given")
-    except:
-        print("unable to give permissions, program might not run")
-        logger.warning("Unable to give permissions, program might not run")
-    
-
-def check_update():
-    """to check if update required"""
-    logger.info("running check_update")
-    if chromedriver_mainversion == chrome_mainversion:
-        logger.info("No need to update, mainversions are the same")
-        return False
-    elif chromedriver_mainversion > chrome_mainversion:
-        print("uhoh, your chromedriver is a higher version than chrome")
-        logger.warning("Your chromedriver is a higher than chrome, program might not run")
-        return
-    else:
-        logger.debug("Update needed..")
-        return True
-    
-
-def get_versions():
-    jsonpath = 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json'
-
-    my_versions = requests.get(jsonpath)
-    if my_versions:
-        my_versions = my_versions.json()
-        with open("chromeversions.json", "w") as file:
-            json.dump(my_versions, file, indent = "")
-
-        print("Done getting new versions json")
-        logger.info("Getting new versions file from github")
-    else:
-        print("Unable to load latest versions")
-        print("Please go to chromedriver.chromium.org")
-        print("To update chromedriver manually")
-        logger.warning("Unable to load latest versions")
-        logger.warning("Please go to chromedriver.chromium.org to update manually")
-        
-
-#%% USED HERE -- dealwithchrome()
-def dealwithchrome():
-    logger.info("Checking to see if we need to update chromedriver")
-    if check_update():
-        get_versions()
-        update_chromedriver()
-        
+logger = get_logger(__name__)
 
 
 #%% USED HERE -- convert_coords(latlon)
@@ -211,7 +125,7 @@ def create_circle(latlon:tuple, radius:int) -> list:
 
 # %% TO IMPORT -- readnotams(filepath = 'notams/current_notams.csv') -> df
 def readnotams(filepath = None, airports_str="omaa"):
-    if filepath == None:
+    if filepath is None:
         today = date.today().strftime("%Y%m%d")
         filepath = f"files/{today}_notams_{airports_str}.csv"
 
@@ -230,34 +144,17 @@ def readnotams(filepath = None, airports_str="omaa"):
             startlines.append(i-1)
         if "CREATED:" in line:
             endlines.append(i)
-        if "End of Report" in line:
-            # print("All lines scanned, End of Report found")
-            
-            number_of_notams = ''
-            for letter in line:
-                if letter.isdigit():
-                    number_of_notams += letter
-            number_of_notams = int(number_of_notams)
-    # print(f'NOTAMs found: {number_of_notams}')
-
 
     notam_dict = {}
     for i in range(len(startlines)-1):
         notam_dict.update({current_notams[startlines[i]]: current_notams[startlines[i]+1:startlines[i+1]-1]})
     try:
         notam_dict.update({current_notams[startlines[-1]]: current_notams[startlines[-1]:endlines[-1]+1]})
-    except:
+    except Exception:
         print("No Notams downloaded, unable to process. This is most likely due to the new headless feature")
         logger.debug("No Notams downloaded. Check Headless feature and rewrite access code.")
         logger.debug("exiting program")
         exit()
-
-    choices = list(notam_dict.keys())
-
-    for i in range(len(notam_dict[choices[0]])):
-        if "F)" in notam_dict[choices[0]][i]:
-            idx = i
-
 
     long_dict = {}
     for key in notam_dict.keys():
@@ -646,10 +543,6 @@ def back_traces(df,jdata,airports_str, filepath_out):
 def collect(base, airports:str):
     """Gets the notams in raw format from notams.faa.gov and writes to file."""
     logger.info("running collect()")
-    # updates chromedriver if needed
-    dealwithchrome()
-    
-
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
     airports = airports.replace("_", " ")
@@ -764,7 +657,7 @@ def cleanup(base, DAYS):
 # %% TO IMPORT -- check -> True / False Will check if invalid query present in file
 def successfull_notam_fetch(filepath = None, airports_str="omaa_omae_omad_omam"):
     """Will check to see if notam fetch was successfull"""
-    if filepath == None:
+    if filepath is None:
         today = date.today().strftime("%Y%m%d")
         filepath = f"files/{today}_notams_{airports_str}.csv"
     try:
@@ -783,10 +676,6 @@ def successfull_notam_fetch(filepath = None, airports_str="omaa_omae_omad_omam")
 def alternative(base, filepath = None, airports:str = "omaa"):
     """To fetch notams from alternative site when primary site not working."""
     logger.info("running nu.alternative()")
-
-    # updates chromedriver if needed
-    dealwithchrome()
-    
 
     # check if file doesnt exist yet
     today = date.today().strftime("%Y%m%d")
@@ -946,8 +835,6 @@ def read_gcaa_pdf(base):
 
 
 def readgcaacsv(filepath = None):
-    today = date.today().strftime("%Y%m%d")
-
     with open(filepath) as file:
         notams = file.readlines()
     
@@ -970,56 +857,30 @@ def readgcaacsv(filepath = None):
     #               G: abc}}
 
     current_notam = {}
-    prevkey = False
-    currentline = ""
-    currentkey = ""
     for line in notams:
         if re.search(r"^[A-Z]\d{4}\/\d{2}", line):
             name = line
             endfound = False
-            # current_notam.update({name:{}})
         elif line.startswith("Q)"):
             current_notam.update({"short":line[2:]})
-            currentkey = "Q"
-            currentline = ""
         elif line.startswith("A)"):
-            icao = line
             current_notam.update({"icao":line[2:]})
-            currentkey = "A"
-            currentline = ""
         elif line.startswith("B)"):
-            start_date = line
             current_notam.update({"start_date":line[2:]})
-            currentkey = "B"
-            currentline = ""
         elif line.startswith("C)"):
-            end_date = line
             current_notam.update({"end_date":line[2:]})
-            currentkey = "C"
-            currentline = ""
         elif line.startswith("D)"):
-            times = line
             current_notam.update({"times":line[2:]})
-            currentkey = "D"
-            currentline = ""
         elif line.startswith("E)"):
             english = True
-            # current_notam.update({"english":line[2:]})
-            currentkey = "E"
             englishline = line[2:]
         elif line.startswith("F)"):
             if english:
                 current_notam.update({"english": englishline})
                 english = False
-            lower = line
             current_notam.update({"lower":line[2:]})
-            currentkey = "F"
-            currentline = ""
         elif line.startswith("G)"):
-            upper = line
             current_notam.update({"upper":line[2:]})
-            currentkey = "G"
-            currentline = ""
         elif line == "":
             endfound = True
         else: # none of the above are true, so we're still on the previous key

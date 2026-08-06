@@ -1,0 +1,1 @@
+"""NotamPlotter package."""

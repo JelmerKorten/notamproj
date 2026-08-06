@@ -32,6 +32,10 @@ import os
 import sys
 from datetime import date
 
+from notamplotter._logging import setup_logging
+
+setup_logging()
+
 
 # Func to get dir of executable
 def find_data_file():

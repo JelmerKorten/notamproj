@@ -22,9 +22,11 @@ import notam_util as nu
 from datetime import date
 import os
 import sys
-import logging
-logging.basicConfig(level=logging.DEBUG, filename="plotter.log",filemode='a', format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
+
+from notamplotter._logging import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 
 # Func to get dir of executable
