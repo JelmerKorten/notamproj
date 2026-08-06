@@ -1,0 +1,31 @@
+# NotamPlotter default configuration.
+# Values here are overridden by environment variables (see .env.example).
+# File is optional: NotamPlotter works out of the box without it.
+
+# Default airports to fetch/plot.
+airports:
+  - omaa
+  - omae
+  - omad
+  - omam
+
+# Output paths (relative to the project root).
+files_dir: files
+output_dir: output
+
+# Delete files in files_dir/output_dir older than this many days.
+retention_days: 5
+
+# Root logging level.
+log_level: INFO
+
+# FAA API base URL (no key required).
+faa_api_base_url: https://notams.aim.faa.gov/notamSearch
+
+# Email settings (Phase 4). All values can come from env vars instead.
+email:
+  smtp_host: ""
+  smtp_port: 587
+  smtp_user: ""
+  email_from: ""
+  email_to: ""

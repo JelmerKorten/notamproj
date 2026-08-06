@@ -69,28 +69,45 @@ Work one branch at a time. No merging without review.
 
 **Goal:** Eliminate god module (`notam_util.py` at 1268 lines). Add configuration.
 
+**Status: ✅ COMPLETED** — branch `refactor/02-config-structure` (pushed to origin; awaiting review/merge to `master`).
+
 ### Tasks
 
-1. **Create `notamplotter/` package** with `__init__.py`.
-2. **Split `notam_util.py` into:**
-   - `notamplotter/config.py` — loads env vars + optional YAML/TOML config file. Provides `Config` dataclass.
-   - `notamplotter/parse.py` — `readnotams()`, `readgcaacsv()`, coordinate conversion (`convert_coords`, `create_circle`)
-   - `notamplotter/plot.py` — `back_traces()`, `create_jdata()`, all geo/polygon logic
-   - `notamplotter/cleanup.py` — `cleanup()` (file retention/deletion)
-3. **Create `notamplotter/models.py`** with typed dataclasses for NOTAM entries instead of dicts.
-4. **Create `config.yaml`** (optional, with `.env` override) for:
+1. **Create `notamplotter/` package** with `__init__.py`. ✅
+2. **Split `notam_util.py` into:** ✅
+   - `notamplotter/config.py` — loads env vars + optional YAML/TOML config file. Provides `Config` dataclass. ✅
+   - `notamplotter/parse.py` — `readnotams()`, `readgcaacsv()`, coordinate conversion (`convert_coords`, `create_circle`) ✅
+   - `notamplotter/plot.py` — `back_traces()`, `create_jdata()`, all geo/polygon logic ✅
+   - `notamplotter/cleanup.py` — `cleanup()` (file retention/deletion) ✅
+3. **Create `notamplotter/models.py`** with typed dataclasses for NOTAM entries instead of dicts. ✅
+4. **Create `config.yaml`** (optional, with `.env` override) for: ✅
    - Default airport list
    - Output paths
    - Email settings (SMTP host/port/from)
    - Cleanup retention days
-5. **Update `notamplotter.py`** to use new package imports.
-6. **Update `notamui.py`** to use new package imports.
+5. **Update `notamplotter.py`** to use new package imports. ✅
+6. **Update `notamui.py`** to use new package imports. ✅
+
+### Notes from implementation
+
+- **`notamplotter/fetch.py` was created in Phase 2** to hold the legacy Selenium fetchers
+  (`collect`, `alternative`, `read_gcaa_pdf`, `successfull_notam_fetch`) plus a
+  `fetch_notams()` entry point, so `from notamplotter.fetch import fetch_notams` resolves now.
+  Phase 3 replaces the internals with the `requests`-based `FaaClient`.
+- **`notam_util.py` is kept as a thin re-export shim** so `import notam_util` keeps working;
+  archiving it to `deprecated/` is deferred until all entry points are migrated (Phase 3+).
+- **New runtime deps:** `python-dotenv==1.0.1`, `PyYAML==6.0.2` (added to `pyproject.toml`
+  and `requirements.txt`) for `.env` + `config.yaml` loading.
+- **DataFrame parity:** parsers now emit all columns in `NOTAM_FIELDS` order (the legacy
+  `readnotams()` relied on first-seen dict ordering). Cell content is unchanged, verified
+  `df.equals()`-identical to the pre-split module for both FAA and GCAA formats.
+- `config.yaml` and `.env.example` are committed; secrets stay in git-ignored `.env`.
 
 ### Verification
 
-- `from notamplotter.config import Config` works
-- `from notamplotter.fetch import fetch_notams` works
-- All routes still produce valid `.html` output
+- [x] `from notamplotter.config import Config` works
+- [x] `from notamplotter.fetch import fetch_notams` works
+- [x] All routes still produce valid `.html` output (verified `handle()` + `handle_gcaa()`, plus `jdata` parity with the pre-split module)
 
 ---
 
@@ -281,7 +298,7 @@ Add a `deprecated/README.md` explaining each file's origin and why it was archiv
 | File | Fate |
 |------|------|
 | `notamplotter.py` | Become thin CLI entry point |
-| `notam_util.py` | Split into `notamplotter/` package, then archived to deprecated |
+| `notam_util.py` | Split into `notamplotter/` package; now a re-export shim (Phase 2). Archive to `deprecated/` once no entry points import it (Phase 3+) |
 | `notamui.py` | Keep as alternative GUI entry (update imports) |
 | `requirements.txt` | Keep for pip users, auto-generated from `pyproject.toml` |
 | `pyproject.toml` | Become single source of truth for deps/version/build |

@@ -1,94 +1,69 @@
-    # NotamPlotter plots notams on a streetmap.
-    # Copyright (C) 2023  Jelmer Korten (korty.codes)
+# This file is part of NotamPlotter.
+# NotamPlotter plots notams on a streetmap.
+# Copyright (C) 2023  Jelmer Korten (korty.codes)
 
-    # NotamPlotter is free software: you can redistribute it and/or modify
-    # it under the terms of the GNU General Public License as published by
-    # the Free Software Foundation, either version 3 of the License, or
-    # (at your option) any later version.
+# Thin CLI entry point (AGENT_PLAN.md, Phase 2).
+# Orchestrates fetch -> handle using the ``notamplotter`` package and a
+# :class:`~notamplotter.config.Config`.
 
-    # NotamPlotter is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with NotamPlotter.  If not, see <https://www.gnu.org/licenses/>.
-
-    # Contact: korty.codes@gmail.com
-
-
-# imports
-import notam_util as nu
-from datetime import date
 import os
 import sys
+from datetime import date
 
 from notamplotter._logging import setup_logging, get_logger
+from notamplotter.cleanup import cleanup
+from notamplotter.config import Config
+from notamplotter.fetch import alternative, collect, read_gcaa_pdf, successfull_notam_fetch
+from notamplotter.plot import handle, handle_gcaa
 
 setup_logging()
 logger = get_logger(__name__)
 
 
-# Func to get dir of executable
-def find_data_file():
+def find_data_dir():
+    """Return the directory containing this file (or the frozen executable)."""
     if getattr(sys, "frozen", False):
-        # The application is frozen
-        datadir = os.path.dirname(sys.executable)
-    else:
-        # The application is not frozen
-        datadir = os.path.dirname(__file__)
-    return datadir
-
-ROOT = find_data_file()
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(__file__)
 
 
-# main
-def main(ROOT):
-    # Clean up folders to save memory
-    logger.info("calling nu.cleanup()")
-    nu.cleanup(base=ROOT, DAYS=5)
+ROOT = find_data_dir()
+CFG = Config.load(ROOT)
 
-    # Fetch today
-    today = date.today()
-    today_str = today.strftime("%Y%m%d")
-    # abu dhabi, omae fir, bateen, al dhafra
-    airports = ['omaa','omae','omad','omam']
-    # Files url
-    airports_str = "_".join(airports)
-    FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{airports_str}.csv")
 
-    # Output url
-    OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{airports_str}.html")
+def main(root, cfg):
+    # Clean up old files to save memory
+    logger.info("calling cleanup()")
+    cleanup(base=root, days=cfg.retention_days)
 
-    file_integrity = nu.successfull_notam_fetch()
+    today = date.today().strftime("%Y%m%d")
+    airports_str = "_".join(cfg.airports)
+
+    FILE_URL = os.path.join(root, cfg.files_dir, f"{today}_notams_{airports_str}.csv")
+    OUTPUT_FILE = os.path.join(root, cfg.output_dir, f"{today}_notams_{airports_str}.html")
+
+    file_integrity = successfull_notam_fetch(filepath=FILE_URL)
     if os.path.isfile(OUTPUT_FILE) and file_integrity:
         logger.info("file already exists")
         sys.exit()
     elif os.path.isfile(FILE_URL) and file_integrity:
-        logger.info("csv alrdy exist, creating file from that")
-        nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
+        logger.info("csv already exists, creating html from that")
+        handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
     else:
-        logger.info("calling nu.collect() to create .csv")
-        nu.collect(base=ROOT, airports=airports_str)
-        logger.info("calling nu.successfull_notam_fetch() to see if file success.")
-        if nu.successfull_notam_fetch():
-            logger.info("notam fetch seems successfull. continueing.")
-            logger.info("calling nu.handle() to create .html")
-            nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE,  airports_str=airports_str)
+        logger.info("calling fetch_notams() to create .csv")
+        collect(base=root, airports=airports_str)
+        if successfull_notam_fetch(filepath=FILE_URL):
+            logger.info("notam fetch seems successful. continuing.")
+            handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
         else:
             logger.info("notam fetch seems invalid. fetching from other site.")
-            logger.info("calling nu.alternative()")
-            nu.alternative(ROOT, airports=airports_str)
+            alternative(root, airports=airports_str)
             logger.info("reading gcaa pdf")
-            new_filename = nu.read_gcaa_pdf(ROOT)
-            filepath_out = new_filename.split("/")[-1]
-            filepath_out = filepath_out.split(".")[0]
-            filepath_out = "output/" + filepath_out + ".html"
-            nu.handle_gcaa(filepath_in = new_filename, filepath_out=filepath_out)
+            new_filename = read_gcaa_pdf(root)
+            filepath_out = os.path.join(root, cfg.output_dir, os.path.basename(new_filename).split(".")[0] + ".html")
+            handle_gcaa(filepath_in=new_filename, filepath_out=filepath_out)
 
-            
-            
 
 if __name__ == "__main__":
-    main(ROOT)
+    main(ROOT, CFG)
     sys.exit()

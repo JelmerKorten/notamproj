@@ -27,7 +27,8 @@
 import customtkinter as ctk
 import tkinter as tk
 
-import notam_util as nu
+from notamplotter.fetch import collect
+from notamplotter.plot import handle
 import os
 import sys
 from datetime import date
@@ -139,7 +140,7 @@ class App(ctk.CTk):
 
 
     def collect_frame2(self):
-        nu.collect(self.ROOT, self.airports) 
+        collect(self.ROOT, self.airports) 
         self.current_frame.pack_forget()
         self.frame3.pack()
         self.current_frame = self.frame3
@@ -153,7 +154,7 @@ class App(ctk.CTk):
         print(self.airports)
         self.airport_str = '_'.join(self.airports.split(' '))
         FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
-        nu.collect(ROOT, self.airports)
+        collect(ROOT, self.airports)
         
         if os.path.isfile(FILE_URL):
             print("IF STATEMENT RUNS")
@@ -168,20 +169,20 @@ class App(ctk.CTk):
         # print(self.airports)
         self.airport_str = '_'.join(self.airports.split(' '))
         FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
-        # nu.collect(ROOT, self.airports)
+        # collect(ROOT, self.airports)
         # url = f"files/{today}_notams_{self.airport_str}.csv"
         # self.airport_str = '_'.join(self.airports.split(' '))
         # FILE_URL = os.path.join(ROOT, "files", f"{today_str}_notams_{self.airport_str}.csv")
         # Output url
         OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{self.airport_str}.html")
         if os.path.isfile(FILE_URL):
-            nu.handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
+            handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
         else:
-            nu.collect(ROOT, self.airports)
-            nu.handle(filepath_in=FILE_URL,filepath_out=OUTPUT_FILE,  airports_str=self.airport_str)
+            collect(ROOT, self.airports)
+            handle(filepath_in=FILE_URL,filepath_out=OUTPUT_FILE,  airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4

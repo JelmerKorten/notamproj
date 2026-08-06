@@ -30,3 +30,5 @@ wsproto==1.2.0
 zstandard==0.21.0
 requests==2.31.0
 charset-normalizer==3.2.0
+python-dotenv==1.0.1
+PyYAML==6.0.2
