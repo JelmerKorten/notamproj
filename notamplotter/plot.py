@@ -10,6 +10,7 @@ the GCAA path (:func:`handle_gcaa`).
 import copy
 import re
 from datetime import date
+from html import escape
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -300,7 +301,7 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
 
     today = date.today()
     plottitle = today.strftime("%Y %b %d")
-    plottitle += f" {airports_str}"
+    plottitle += f" {escape(airports_str)}"
     fig = go.Figure(
         go.Choroplethmapbox(
             name="Notams",

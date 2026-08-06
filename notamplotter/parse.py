@@ -9,6 +9,7 @@ drops the GCAA format support (:func:`readgcaacsv`). Parsers build
 DataFrame schema consumed by :mod:`notamplotter.plot`.
 """
 
+import html
 import re
 import textwrap
 from datetime import date
@@ -109,21 +110,32 @@ def _to_frame(notams: list[Notam]) -> pd.DataFrame:
     for i in range(len(df)):
         idx = df.index[i]
         if df.loc[idx, "english"]:
-            df.at[idx, "wrap"] = (
-                f"{idx}<br>"
-                + "<br>".join(textwrap.wrap(df.loc[idx, "english"], width=50))
-                + "<br>Lower: "
-                + str(df.loc[idx, "lower"])
-                + " -- Upper: "
-                + str(df.loc[idx, "upper"])
-                + "<br>Dates From: "
-                + str(df.loc[idx, "start_date"])
-                + " To: "
-                + str(df.loc[idx, "end_date"])
-                + "<br>Times: "
-                + str(df.loc[idx, "times"])
-            )
+            df.at[idx, "wrap"] = _wrap_notam(idx, df.loc[idx])
     return df
+
+
+def _wrap_notam(idx, row) -> str:
+    """Render a NOTAM row as Plotly-safe HTML, escaping all source text.
+
+    The ``wrap`` string becomes hover/legend/title HTML inside the generated
+    plot, so every NOTAM-derived value is escaped (``<`` ``>`` ``&`` ...) while
+    the ``<br>`` separators we inject ourselves are preserved.
+    """
+    english = "<br>".join(textwrap.wrap(html.escape(str(row["english"])), width=50))
+    return (
+        f"{html.escape(str(idx))}<br>"
+        + english
+        + "<br>Lower: "
+        + html.escape(str(row["lower"]))
+        + " -- Upper: "
+        + html.escape(str(row["upper"]))
+        + "<br>Dates From: "
+        + html.escape(str(row["start_date"]))
+        + " To: "
+        + html.escape(str(row["end_date"]))
+        + "<br>Times: "
+        + html.escape(str(row["times"]))
+    )
 
 
 def parse_icao_block(text: str) -> dict[str, str]:

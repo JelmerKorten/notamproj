@@ -22,7 +22,7 @@ from pathlib import Path
 from notamplotter._logging import get_logger, setup_logging
 from notamplotter.config import Config
 from notamplotter.emailer import EmailConfig, send_html_email
-from notamplotter.fetch import FaaClient, collect
+from notamplotter.fetch import FaaClient, _normalize_designators, collect
 from notamplotter.parse import readnotams
 from notamplotter.plot import handle
 
@@ -34,6 +34,7 @@ def _resolve_config(args) -> Config:
     cfg = Config.load(args.base)
     if args.airports:
         cfg.airports = [code.strip().lower() for code in args.airports.split(",") if code.strip()]
+    _normalize_designators(cfg.airports)  # raises ValueError on any invalid code
     return cfg
 
 

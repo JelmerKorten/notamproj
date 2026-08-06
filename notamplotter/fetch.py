@@ -26,14 +26,31 @@ _TIMEOUT = 30
 _RETRIES = 3
 _PAGE_SIZE = 30
 
+# ICAO location indicators / designators are purely alphanumeric (e.g. OMAA,
+# KZLA, HE24). Restricting input here blocks path traversal, SMTP header
+# injection and HTML/script injection through airport codes.
+_ICAO_RE = re.compile(r"^[A-Za-z0-9]{1,8}$")
+
 
 def _normalize_designators(airports: str | list[str]) -> list[str]:
-    """Return uppercase ICAO codes from a string or list of airport inputs."""
+    """Return uppercase ICAO codes from a string or list of airport inputs.
+
+    Raises :class:`ValueError` if any token is not a valid ICAO code, so
+    user-supplied codes can never reach file paths or the HTML title.
+    """
     if isinstance(airports, str):
         parts = re.split(r"[\s_,]+", airports.strip())
     else:
         parts = list(airports)
-    return [part.upper() for part in parts if part]
+    normalized = []
+    for part in parts:
+        code = part.strip().upper()
+        if not code:
+            continue
+        if not _ICAO_RE.match(code):
+            raise ValueError(f"invalid airport code: {code!r}")
+        normalized.append(code)
+    return normalized
 
 
 class FaaClient:
