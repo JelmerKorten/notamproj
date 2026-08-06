@@ -40,25 +40,28 @@ Work one branch at a time. No merging without review.
 
 **Goal:** Remove dead code / consolidate logging / archive unused files.
 
+**Status: ✅ COMPLETED** — merged via branch `refactor/01-cleanup-deprecate` (pushed to origin; commits `ad1fe72a`, `d11810de`).
+
 ### Tasks
 
-1. **Create `deprecated/` directory** at project root with its own `README.md` explaining what each file was.
-2. **Move these files to `deprecated/`:**
+1. **Create `deprecated/` directory** at project root with its own `README.md` explaining what each file was. ✅
+2. **Move these files to `deprecated/`:** ✅
    - `gcaadf.py` — duplicate of `notam_util.readgcaacsv()`
    - `dealwithchrome.py` — Selenium chrome driver updater (superseded by API)
    - `edgecasetest.py` — one-off PDF parsing test
    - `tester.py` — manual Selenium fetch test
    - `__version__.py` — version + chrome driver logic (move info to `pyproject.toml`; move chrome logic to deprecated)
-3. **Consolidate logging** into a single module (`notamplotter/_logging.py`). Remove duplicate `logging.basicConfig()` calls from each file.
-4. **Remove commented-out Selenium code blocks** scattered through `notam_util.py` (the 30+ lines of `XPATH = ...` comments).
-5. **Strip unused imports** from all files (`zipfile`, `io`, `json`, `darkdetect`, `cx_Freeze`, etc.).
-6. **Remove `setup.py`** (cx_Freeze). Move build config to `pyproject.toml` if still needed.
+   - plus `setup.py`, `chromeversions.json`, and `support/` per the archive table below
+3. **Consolidate logging** into a single module (`notamplotter/_logging.py`). Remove duplicate `logging.basicConfig()` calls from each file. ✅
+4. **Remove commented-out Selenium code blocks** scattered through `notam_util.py` (the 30+ lines of `XPATH = ...` comments). ✅
+5. **Strip unused imports** from all files (`zipfile`, `io`, `json`, `darkdetect`, `cx_Freeze`, etc.). ✅
+6. **Remove `setup.py`** (cx_Freeze). Move build config to `pyproject.toml` if still needed. ✅
 
 ### Verification
 
-- `python -c "import notam_util; print('OK')"` succeeds
-- `ruff check .` passes (no undefined names)
-- Logs only from single `_logging.py` source
+- [x] `python -c "import notam_util; print('OK')"` succeeds
+- [x] `ruff check .` passes (no undefined names)
+- [x] Logs only from single `_logging.py` source
 
 ---
 
@@ -245,6 +248,7 @@ jobs:
    line-length = 120
    target-version = "py313"
    ```
+6. **Remediate dependency vulnerabilities.** GitHub Dependabot reports **27 open alerts** on the default branch (1 critical, 11 high, 14 moderate, 1 low), mostly from the old pins in `requirements.txt` (e.g. `numpy==1.24.2`, `pandas==1.5.3`, `selenium==4.8.3`). Before this phase merges: bump to current patched releases, regenerate `requirements.txt` from `pyproject.toml`, and clear the Dependabot alerts (see https://github.com/JelmerKorten/notamproj/security/dependabot).
 
 ### Verification
 
