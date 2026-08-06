@@ -113,42 +113,58 @@ Work one branch at a time. No merging without review.
 
 ## Phase 3 — API Migration (Core)
 
-**Goal:** Replace Selenium scraper with `requests`-based FAA API.
+**Goal:** Replace Selenium scraper with a `curl_cffi`-based FAA API client.
 
-> **Note (from Phase 1):** pre-plan API work is preserved in a `git stash`
-> (`stash@{0}`, from the `queries` branch). It contains `test_requests.py`
-> (the `requests`-based API proof-of-concept referenced in the verification
-> below) and the `wait_for_download()` Selenium helper. Restore it at the
-> start of Phase 3 with `git stash pop` (or `git stash apply stash@{0}`), then
-> move `test_requests.py` into the test suite.
+**Status: ✅ COMPLETED** — branch `refactor/03-api-migration` (awaiting review/merge to `master`).
+
+> **Note (from Phase 1):** pre-plan API work was preserved in a `git stash`
+> (`stash@{0}`, from the `queries` branch). It contained only Selenium
+> exploration (no `test_requests.py` existed), so nothing was restored from it.
 
 ### Tasks
 
-1. **Create `notamplotter/fetch.py`** with FAA API client.
+1. **Create `notamplotter/fetch.py`** with FAA API client. ✅
 2. **Implement `FaaClient` class:**
-   - Session with retry adapter (`tenacity` or `urllib3.Retry`), 3 retries, 5s timeout
-   - `get_cookies()` → `GET https://notams.aim.faa.gov/notamSearch/`
-   - `search(designators: list[str])` → `POST /notamSearch/search` with JSON payload:
-     ```python
-     {
-         "searchType": "0",
-         "designatorsForLocation": "KJFK,KLAX",
-         "offset": "0",
-         "notamsOnly": "false",
-     }
+   - `curl_cffi` session (`impersonate="chrome"`), 3 retries with backoff, 30s timeout
+   - `_get_cookies()` → `GET https://notams.aim.faa.gov/notamSearch/` (Akamai cookie warm-up)
+   - `search(designators, offset=0)` → `POST /notamSearch/search` **form-encoded** (NOT JSON):
      ```
-   - Returns parsed JSON (`notamList`, `totalNotamCount`)
-3. **Implement `parse_faa_response(data: dict) -> pd.DataFrame`** to convert API JSON to the same DataFrame schema that `readnotams()` produces.
-4. **Create `notamplotter/fetch_gcaa.py`** for PDF fallback (keep Selenium only here if GCAA still needed).
-5. **Update `collect()` signature:** accept `FaaClient` instance.
-6. **Remove Selenium import paths** from everywhere. Move Selenium deps out of runtime deps in `pyproject.toml`.
-7. **Move `wait_for_download()`** to `deprecated/` if GCAA fallback is kept.
+     searchType=0&designatorsForLocation=OMAA,OMAE&offset=0&notamsOnly=false
+     ```
+   - `fetch_all(designators)` → paginates via `offset`/`endRecordCount` (pages of 30) and returns the full `notamList`
+3. **Implement `parse_faa_response(data: dict) -> pd.DataFrame`** (in `parse.py`) converting API JSON to the same schema as `readnotams()`. ✅
+4. **Create `notamplotter/fetch_gcaa.py`** for PDF fallback. **Not created** — GCAA/Selenium support was removed entirely (user decision). `read_gcaa_pdf`, `alternative`, `successfull_notam_fetch`, `handle_gcaa`, `readgcaacsv` are gone.
+5. **Update `collect()` signature:** accept optional `FaaClient` instance, write the modern CSV format. ✅
+6. **Remove Selenium import paths** everywhere; removed `selenium`, `pypdf`, `requests` from `pyproject.toml`; added `curl-cffi==0.16.0`. ✅
+7. **`wait_for_download()`** was never present in this branch; nothing to archive. ✅
+
+### Notes from implementation
+
+- **`curl_cffi` is required, not plain `requests`.** The FAA endpoint is behind
+  Akamai TLS fingerprinting: vanilla `requests`/`urllib` get HTTP 403. Verified
+  live: one `Session(impersonate="chrome")`, a GET to `/notamSearch/` first
+  (acquires the Akamai cookies), then a form-encoded POST to `/notamSearch/search`
+  returns HTTP 200 with JSON (`notamList`, `totalNotamCount`, `startRecordCount`,
+  `endRecordCount`, …). A JSON request body returns 503.
+- **Response field of interest:** each notam carries `icaoMessage` (the raw ICAO
+  block, `\r\n`-separated, no `CREATED:` lines) which feeds `parse_icao_block`.
+- **`readnotams()` was rewritten** around a shared block parser
+  (`parse_icao_block`) that handles modern-format files (no `CREATED:` lines);
+  it previously exited with `SystemExit` on every file in `files/`.
+- **`handle()` now takes a DataFrame** (user decision): the pipeline is
+  `FaaClient.fetch_all() → parse_faa_response() → handle(df)`.
+- **`collect()` writes raw `icaoMessage` blocks** separated by blank lines, so
+  the saved CSV round-trips through `readnotams()` unchanged (verified with a
+  `df.equals()` parity test).
+- `notamui.py`'s `_tkinter` import is a pre-existing brew-Python limitation,
+  unrelated to this phase.
 
 ### Verification
 
-- Proof of API test file (`test_requests.py`) passes
-- Full `collect()` → `handle()` pipeline produces valid `.html`
-- Runs on GitHub Actions Linux runner **without Chrome**
+- [x] `pytest tests/test_requests.py` — 6 passed, incl. live API smoke (`tests/fixtures/faa_full.json` committed)
+- [x] Full live pipeline: `fetch_all` (61 notams) → `parse_faa_response` (61 rows) → `handle(df)` → 4.8 MB `.html`
+- [x] `ruff check .` passes
+- [x] Runs without Chrome / Selenium
 
 ---
 

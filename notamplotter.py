@@ -3,7 +3,7 @@
 # Copyright (C) 2023  Jelmer Korten (korty.codes)
 
 # Thin CLI entry point (AGENT_PLAN.md, Phase 2).
-# Orchestrates fetch -> handle using the ``notamplotter`` package and a
+# Orchestrates fetch -> plot using the ``notamplotter`` package and a
 # :class:`~notamplotter.config.Config`.
 
 import os
@@ -13,8 +13,9 @@ from datetime import date
 from notamplotter._logging import setup_logging, get_logger
 from notamplotter.cleanup import cleanup
 from notamplotter.config import Config
-from notamplotter.fetch import alternative, collect, read_gcaa_pdf, successfull_notam_fetch
-from notamplotter.plot import handle, handle_gcaa
+from notamplotter.fetch import FaaClient, fetch_notams
+from notamplotter.parse import parse_faa_response
+from notamplotter.plot import handle
 
 setup_logging()
 logger = get_logger(__name__)
@@ -39,29 +40,19 @@ def main(root, cfg):
     today = date.today().strftime("%Y%m%d")
     airports_str = "_".join(cfg.airports)
 
-    FILE_URL = os.path.join(root, cfg.files_dir, f"{today}_notams_{airports_str}.csv")
     OUTPUT_FILE = os.path.join(root, cfg.output_dir, f"{today}_notams_{airports_str}.html")
 
-    file_integrity = successfull_notam_fetch(filepath=FILE_URL)
-    if os.path.isfile(OUTPUT_FILE) and file_integrity:
+    if os.path.isfile(OUTPUT_FILE):
         logger.info("file already exists")
         sys.exit()
-    elif os.path.isfile(FILE_URL) and file_integrity:
-        logger.info("csv already exists, creating html from that")
-        handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
-    else:
-        logger.info("calling fetch_notams() to create .csv")
-        collect(base=root, airports=airports_str)
-        if successfull_notam_fetch(filepath=FILE_URL):
-            logger.info("notam fetch seems successful. continuing.")
-            handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=airports_str)
-        else:
-            logger.info("notam fetch seems invalid. fetching from other site.")
-            alternative(root, airports=airports_str)
-            logger.info("reading gcaa pdf")
-            new_filename = read_gcaa_pdf(root)
-            filepath_out = os.path.join(root, cfg.output_dir, os.path.basename(new_filename).split(".")[0] + ".html")
-            handle_gcaa(filepath_in=new_filename, filepath_out=filepath_out)
+
+    logger.info("calling fetch_notams() against the FAA API")
+    client = FaaClient(base_url=cfg.faa_api_base_url)
+    notams = fetch_notams(cfg.airports, client)
+
+    df = parse_faa_response({"notamList": notams, "totalNotamCount": len(notams)})
+    logger.info("parsed %d notams", len(df))
+    handle(df, filepath_out=OUTPUT_FILE, airports_str=airports_str)
 
 
 if __name__ == "__main__":

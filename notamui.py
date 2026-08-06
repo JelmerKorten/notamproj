@@ -28,6 +28,7 @@ import customtkinter as ctk
 import tkinter as tk
 
 from notamplotter.fetch import collect
+from notamplotter.parse import readnotams
 from notamplotter.plot import handle
 import os
 import sys
@@ -176,13 +177,13 @@ class App(ctk.CTk):
         # Output url
         OUTPUT_FILE = os.path.join(ROOT, "output", f"{today_str}_notams_{self.airport_str}.html")
         if os.path.isfile(FILE_URL):
-            handle(filepath_in=FILE_URL, filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
+            handle(readnotams(FILE_URL), filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4
         else:
             collect(ROOT, self.airports)
-            handle(filepath_in=FILE_URL,filepath_out=OUTPUT_FILE,  airports_str=self.airport_str)
+            handle(readnotams(FILE_URL), filepath_out=OUTPUT_FILE, airports_str=self.airport_str)
             self.current_frame.pack_forget()
             self.frame4.pack()
             self.current_frame = self.frame4

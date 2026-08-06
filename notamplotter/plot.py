@@ -2,7 +2,9 @@
 
 Phase 2 (AGENT_PLAN.md): hosts the plotting half of the former
 ``notam_util.py`` -- everything from polygon creation to writing the final
-``.html`` via Plotly.
+``.html`` via Plotly. Phase 3 changes :func:`handle` to consume a DataFrame
+directly (built by :func:`~notamplotter.parse.parse_faa_response`) and drops
+the GCAA path (:func:`handle_gcaa`).
 """
 
 import copy
@@ -13,7 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from notamplotter._logging import get_logger
-from notamplotter.parse import convert_coords, create_circle, readgcaacsv, readnotams
+from notamplotter.parse import convert_coords, create_circle
 
 logger = get_logger(__name__)
 
@@ -291,11 +293,14 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
     logger.info("html file created in output folder")
 
 
-def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
-    """Read a NOTAM file and write an ``.html`` plot."""
+def handle(df, filepath_out=None, airports_str="omaa"):
+    """Plot a NOTAM DataFrame and write an ``.html`` plot to ``filepath_out``.
+
+    ``df`` is the plotting DataFrame produced by
+    :func:`~notamplotter.parse.parse_faa_response` (or
+    :func:`~notamplotter.parse.readnotams`).
+    """
     logger.info("running handle()")
-    df = readnotams(filepath_in, airports_str)
-    logger.info("Notams read.")
     df = add_polygons(df)
     logger.info("polygons added")
     df = add_multiple_circles(df)
@@ -304,14 +309,4 @@ def handle(filepath_in=None, filepath_out=None, airports_str="omaa"):
     logger.info("circles split")
     jdata = create_jdata(df)
     logger.info("jdata created")
-    back_traces(df, jdata, airports_str, filepath_out)
-
-
-def handle_gcaa(filepath_in=None, filepath_out=None, airports_str: str | None = None):
-    """Read a GCAA file and generate an ``.html`` plot."""
-    df = readgcaacsv(filepath_in)
-    df = add_polygons(df)
-    df = add_multiple_circles(df)
-    df = split_circles_add_indices(df)
-    jdata = create_jdata(df)
     back_traces(df, jdata, airports_str, filepath_out)
