@@ -19,6 +19,154 @@ from notamplotter.parse import convert_coords, create_circle
 
 logger = get_logger(__name__)
 
+_SEARCH_UI = (
+    '<div id="notam-search-wrap">'
+    '<input id="notam-search" type="text" placeholder="Search NOTAMs..." />'
+    '<button id="notam-reset" type="button">Show all</button>'
+    "</div>"
+)
+
+_LEGEND_DIVIDER = "-------------------------<br>"
+
+_SEARCH_JS = r"""
+(function () {
+  var gd = document.getElementById('notamplot');
+  if (!gd || !gd.data || !gd.data.length) return;
+  var CHORO = 0;
+  var choro = gd.data[CHORO];
+  var features = (choro && choro.geojson && choro.geojson.features) || [];
+  var ids = new Set(features.map(function (f) { return String(f.properties.id); }));
+  var allText = (choro && choro.text) || [];
+  var allLocs = (choro && choro.locations) || [];
+  var notams = [];
+  for (var i = 0; i < gd.data.length; i++) {
+    if (gd.data[i].meta != null && ids.has(String(gd.data[i].meta))) notams.push(i);
+  }
+  var search = document.getElementById('notam-search');
+  var reset = document.getElementById('notam-reset');
+
+  function setVisible(keep) {
+    var showS = [], hideS = [];
+    var keepLocs = [], keepZ = [], keepText = [];
+    for (var i = 0; i < notams.length; i++) {
+      var id = String(gd.data[notams[i]].meta);
+      if (keep === null || keep.has(id)) showS.push(notams[i]);
+      else hideS.push(notams[i]);
+    }
+    if (showS.length) Plotly.restyle(gd, { visible: true, showlegend: true }, showS);
+    if (hideS.length) Plotly.restyle(gd, { visible: false, showlegend: false }, hideS);
+    for (var j = 0; j < allLocs.length; j++) {
+      var lid = String(allLocs[j]);
+      if (keep === null || keep.has(lid)) {
+        keepLocs.push(allLocs[j]);
+        keepZ.push(0);
+        keepText.push(allText[j]);
+      }
+    }
+    var data = gd.data.slice();
+    data[CHORO] = Object.assign({}, gd.data[CHORO], {
+      locations: keepLocs,
+      z: keepZ,
+      text: keepText,
+    });
+    Plotly.react(gd, data, gd.layout, { responsive: true });
+  }
+
+  function fitZoom(west, east, south, north) {
+    var rect = gd.getBoundingClientRect();
+    var width = Math.max(rect.width, 10), height = Math.max(rect.height, 10);
+    var R = 6378137, TILE = 512, world = 2 * Math.PI * R;
+    function mx(lon) { return lon * Math.PI / 180 * R; }
+    function my(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) * R; }
+    var dx = Math.max(Math.abs(mx(east) - mx(west)), 1);
+    var dy = Math.max(Math.abs(my(north) - my(south)), 1);
+    var zx = Math.log2(width * 0.8 * world / (dx * TILE));
+    var zy = Math.log2(height * 0.8 * world / (dy * TILE));
+    return Math.max(0, Math.min(17, Math.min(zx, zy)));
+  }
+
+  function zoomToTrace(ci) {
+    var tr = gd.data[ci];
+    if (!tr || tr.meta == null || !ids.has(String(tr.meta))) return;
+    var lon = tr.lon || [], lat = tr.lat || [];
+    if (!lon.length) return;
+    var west = Math.min.apply(null, lon), east = Math.max.apply(null, lon);
+    var south = Math.min.apply(null, lat), north = Math.max.apply(null, lat);
+    var dw = Math.max((east - west) * 0.15, 0.005);
+    var dh = Math.max((north - south) * 0.15, 0.005);
+    setVisible(new Set([String(tr.meta)]));
+    Plotly.relayout(gd, {
+      'mapbox.center': { lon: (west + east) / 2, lat: (south + north) / 2 },
+      'mapbox.zoom': fitZoom(west - dw, east + dw, south - dh, north + dh)
+    });
+  }
+
+  if (search) {
+    var debounceTimer = null;
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () {
+        if (!q) { setVisible(null); return; }
+        var keep = new Set();
+        for (var i = 0; i < notams.length; i++) {
+          var tr = gd.data[notams[i]];
+          if ((tr.name || '').toLowerCase().indexOf(q) !== -1) keep.add(String(tr.meta));
+        }
+        setVisible(keep);
+      }, 150);
+    });
+  }
+
+  function resolveTrace(p) {
+    var cn = p.curveNumber;
+    var tr = gd.data[cn];
+    if (tr && tr.meta != null && ids.has(String(tr.meta))) return cn;
+    if (cn === CHORO && p.location != null) {
+      for (var i = 0; i < notams.length; i++) {
+        if (String(gd.data[notams[i]].meta) === String(p.location)) return notams[i];
+      }
+    }
+    return null;
+  }
+
+  if (gd.on) {
+    // On mapbox, plotly_doubleclick fires with `null` data and only after
+    // Plotly has reset the view, so recover the double-clicked NOTAM from the
+    // last plotly_click (which carries the trace) and pan to it here.
+    var lastNotamClick = { t: 0, ci: null };
+    gd.on('plotly_click', function (ev) {
+      if (!ev || !ev.points || !ev.points.length) return;
+      var ci = resolveTrace(ev.points[0]);
+      if (ci != null) lastNotamClick = { t: Date.now(), ci: ci };
+    });
+    gd.on('plotly_doubleclick', function () {
+      if (lastNotamClick.ci != null && Date.now() - lastNotamClick.t < 500) {
+        // run after Plotly's own mapbox double-click view reset settles
+        setTimeout(function () { zoomToTrace(lastNotamClick.ci); }, 0);
+      }
+      return false;
+    });
+    gd.on('plotly_legenddoubleclick', function (ev) {
+      if (ev && ev.curveNumber != null) zoomToTrace(ev.curveNumber);
+      return false;
+    });
+  }
+
+  if (reset) {
+    reset.addEventListener('click', function () {
+      if (search) search.value = '';
+      setVisible(null);
+      Plotly.relayout(gd, {
+        'mapbox.center': { lon: 54.651512, lat: 24.442970 },
+        'mapbox.zoom': 9,
+        'mapbox.bounds': null
+      });
+    });
+  }
+})();
+"""
+
 
 def add_polygons(df: pd.DataFrame) -> pd.DataFrame:
     """Add ``coords`` for anything containing 'BOUNDED'. Returns a new df.
@@ -173,8 +321,7 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
     fig.update_layout(
         title_text=f"Notams {plottitle}",
         title_x=0.5,
-        width=1600,
-        height=800,
+        autosize=True,
         mapbox={
             "style": "open-street-map",
             "center": {"lon": 54.651512, "lat": 24.442970},
@@ -184,6 +331,8 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
     )
 
     fig.update_layout(hoverlabel=dict(bgcolor="white", font_size=12, font_family="Rockwell"))
+
+    fig.update_layout(legend=dict(itemdoubleclick=False))
 
     # commonly used routes
     fig.add_trace(
@@ -278,7 +427,7 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
             lat = [item[1] for item in coords]
             fig.add_trace(
                 go.Scattermapbox(
-                    name=df.loc[df.index[i], "wrap"],
+                    name=_LEGEND_DIVIDER + df.loc[df.index[i], "wrap"],
                     mode="lines",
                     lon=lon,
                     lat=lat,
@@ -286,10 +435,32 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
                     hoverinfo="skip",
                     legendwidth=0.1,
                     line=dict(color="tomato", width=1),
+                    meta=df.index[i],
                 )
             )
 
-    fig.write_html(filepath_out, full_html=True)
+    html = fig.to_html(
+        full_html=True,
+        include_plotlyjs=True,
+        config={"responsive": True},
+        div_id="notamplot",
+    )
+    html = re.sub(
+        r'id="notamplot" class="plotly-graph-div" style="[^"]*"',
+        'id="notamplot" class="plotly-graph-div" style="height:100vh;width:100vw;"',
+        html,
+    )
+    html = html.replace(
+        "</head>",
+        "<style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}"
+        "#notam-search-wrap{position:fixed;top:8px;left:8px;z-index:1000;display:flex;gap:6px;font-family:sans-serif;}"
+        "#notam-search{width:220px;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;}"
+        "#notam-reset{padding:6px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:13px;cursor:pointer;}"
+        "</style></head>",
+    )
+    html = html.replace("</body>", _SEARCH_UI + "<script>" + _SEARCH_JS + "</script></body>")
+    with open(filepath_out, "w") as file:
+        file.write(html)
     logger.info("html file created in output folder")
 
 
