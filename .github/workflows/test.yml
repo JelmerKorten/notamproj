@@ -1,131 +1,40 @@
-    # This file is part of NotamPlotter.
-    
-    # NotamPlotter plots notams on a streetmap.
-    # Copyright (C) 2023  Jelmer Korten (korty.codes)
-
-    # NotamPlotter is free software: you can redistribute it and/or modify
-    # it under the terms of the GNU General Public License as published by
-    # the Free Software Foundation, either version 3 of the License, or
-    # (at your option) any later version.
-
-    # NotamPlotter is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with NotamPlotter.  If not, see <https://www.gnu.org/licenses/>.
-
-    # Contact: korty.codes@gmail.com
-
-name: Manual-Workflow
+name: Test & Lint
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - "notamplotter/**"
+      - "pyproject.toml"
+      - "config.yaml"
+      - ".env.example"
+      - ".github/workflows/test.yml"
+  pull_request:
+    paths:
+      - "notamplotter/**"
+      - "pyproject.toml"
+      - "config.yaml"
+      - ".env.example"
+      - ".github/workflows/test.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-
-  build:
-    name: Create windows binary
-    runs-on: windows-latest
-
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-    - uses: actions/checkout@v3
-
-    # Setup Python
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-
-    # Setup chrome
-    - uses: browser-actions/setup-chrome@v1
-    - run: chrome --latest
-
-    # Install requirements
-    - name: install requirements
-      run: pip install -r requirements.txt
-
-    - name: print ls
-      run: ls
-
-    # Create standalone
-    - name: create standalone
-      run: python setup.py build
-    
-    # Upload artifact
-    # - name: upload artifact
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: standalone
-    #     path: ./notamproject
-
-    # Run the created standalone on windows
-    # - name: cd to project folder
-    #   run: cd notamproject
-
-    - name: print contents
-      working-directory: ./notamproject
-      run: ls
-
-    - name: run exe
-      # working-directory: ./notamproject
-      run: ./notamproject/notamplotter.exe
-
-    # # cd into the output folder
-    # - name: cd into output
-    #   run: cd output
-
-    # Check if output
-    - name: ls output
-      working-directory: ./notamproject/output
-      run: ls
-
-    # End note
-    - name: print
-      run: echo "Run completed."
-        
-# jobs:
-
-#   build:
-#     # Windows is currently the only platform this action supports
-#     runs-on: windows-latest
-
-#     steps:
-
-#       # Check-out repository
-#       - uses: actions/checkout@v3
-
-#       # Setup Python
-#       - uses: actions/setup-python@v4
-#         with:
-#           python-version: '3.11'
-#           cache: 'pip'
-
-#       # Setup environment
-#       - name: install requirements
-#         run: pip install requirements.txt
-#
-#       # Create standalone
-#       - name: create standalone
-#         run: python setup.py build
-#
-#       # find standalone and upload
-#       - name: Upload Artifact
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: standalone
-#           path: ./notamproject
-#       # Build python script into a stand-alone exe
-#       - uses: Nuitka/Nuitka-Action@main
-#         with:
-#           nuitka-version: main
-#           script-name: hello_world.py
-#           onefile: true
-
-#       # Uploads artifact
-#       - name: Upload Artifact
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: exe
-#           path: build/hello_world.exe
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Import check
+        run: python -c "import notamplotter, notamplotter.cli, notamplotter.plot, notamplotter.fetch, notamplotter.config"

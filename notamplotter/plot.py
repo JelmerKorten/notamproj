@@ -20,6 +20,20 @@ from notamplotter.parse import convert_coords, create_circle
 
 logger = get_logger(__name__)
 
+# Coordinate formats found in NOTAM text: a full pair ``250320N 0544740E`` and
+# the individual lat / lon components used to pair up circle centres.
+_COORD_RE = re.compile(r"\d{6}(?:\.\d+)?[NS] \d{7}(?:\.\d+)?[EW]")
+_LAT_RE = re.compile(r"\d{6}(?:\.\d+)?[NS]")
+_LON_RE = re.compile(r"\d{7}(?:\.\d+)?[EW]")
+
+# A radius phrase such as ``RADIUS 956 M`` (units M / NM / KM, metres).
+_RADIUS_RE = re.compile(r"\bRADIUS\b\s(\d+(?:\.\d+)?)\s*([A-Z]+)")
+_UNIT_METRES = {"M": 1, "NM": 1852, "KM": 1000}
+
+# NOTAMs that only amend published chart/AIP data (``... TO READ AS FLW: ...``)
+# don't describe a real map feature and are skipped by :func:`add_lines_and_points`.
+_READ_AMEND_RE = re.compile(r"\bREAD AS\b", re.IGNORECASE)
+
 _SEARCH_UI = (
     '<div id="notam-search-wrap">'
     '<input id="notam-search" type="text" placeholder="Search NOTAMs..." />'
@@ -35,13 +49,12 @@ _SEARCH_JS = r"""
   if (!gd || !gd.data || !gd.data.length) return;
   var CHORO = 0;
   var choro = gd.data[CHORO];
-  var features = (choro && choro.geojson && choro.geojson.features) || [];
-  var ids = new Set(features.map(function (f) { return String(f.properties.id); }));
   var allText = (choro && choro.text) || [];
   var allLocs = (choro && choro.locations) || [];
+  // every NOTAM shape trace (polygon/circle/line/point) carries ``meta``
   var notams = [];
   for (var i = 0; i < gd.data.length; i++) {
-    if (gd.data[i].meta != null && ids.has(String(gd.data[i].meta))) notams.push(i);
+    if (gd.data[i].meta != null) notams.push(i);
   }
   var search = document.getElementById('notam-search');
   var reset = document.getElementById('notam-reset');
@@ -54,8 +67,8 @@ _SEARCH_JS = r"""
       if (keep === null || keep.has(id)) showS.push(notams[i]);
       else hideS.push(notams[i]);
     }
-    if (showS.length) Plotly.restyle(gd, { visible: true, showlegend: true }, showS);
-    if (hideS.length) Plotly.restyle(gd, { visible: false, showlegend: false }, hideS);
+    if (showS.length) Plotly.restyle(gd, { visible: true }, showS);
+    if (hideS.length) Plotly.restyle(gd, { visible: false }, hideS);
     for (var j = 0; j < allLocs.length; j++) {
       var lid = String(allLocs[j]);
       if (keep === null || keep.has(lid)) {
@@ -88,14 +101,23 @@ _SEARCH_JS = r"""
 
   function zoomToTrace(ci) {
     var tr = gd.data[ci];
-    if (!tr || tr.meta == null || !ids.has(String(tr.meta))) return;
-    var lon = tr.lon || [], lat = tr.lat || [];
+    if (!tr || tr.meta == null) return;
+    // a NOTAM's shapes all share one legendgroup -- treat them as one unit
+    var group = tr.legendgroup || String(tr.meta);
+    var keep = new Set();
+    var lon = [], lat = [];
+    for (var k = 0; k < gd.data.length; k++) {
+      if (gd.data[k].legendgroup !== group) continue;
+      keep.add(String(gd.data[k].meta));
+      lon = lon.concat(gd.data[k].lon || []);
+      lat = lat.concat(gd.data[k].lat || []);
+    }
     if (!lon.length) return;
     var west = Math.min.apply(null, lon), east = Math.max.apply(null, lon);
     var south = Math.min.apply(null, lat), north = Math.max.apply(null, lat);
     var dw = Math.max((east - west) * 0.15, 0.005);
     var dh = Math.max((north - south) * 0.15, 0.005);
-    setVisible(new Set([String(tr.meta)]));
+    setVisible(keep);
     Plotly.relayout(gd, {
       'mapbox.center': { lon: (west + east) / 2, lat: (south + north) / 2 },
       'mapbox.zoom': fitZoom(west - dw, east + dw, south - dh, north + dh)
@@ -122,7 +144,7 @@ _SEARCH_JS = r"""
   function resolveTrace(p) {
     var cn = p.curveNumber;
     var tr = gd.data[cn];
-    if (tr && tr.meta != null && ids.has(String(tr.meta))) return cn;
+    if (tr && tr.meta != null) return cn;
     if (cn === CHORO && p.location != null) {
       for (var i = 0; i < notams.length; i++) {
         if (String(gd.data[notams[i]].meta) === String(p.location)) return notams[i];
@@ -169,70 +191,51 @@ _SEARCH_JS = r"""
 """
 
 
+def _coord_pairs(text: str) -> list[tuple]:
+    """Return every matched coordinate pair in ``text`` as ``(lon, lat)``."""
+    return [(lon, lat) for lat, lon in (convert_coords(c) for c in _COORD_RE.findall(text))]
+
+
 def add_polygons(df: pd.DataFrame) -> pd.DataFrame:
     """Add ``coords`` for anything containing 'BOUNDED'. Returns a new df.
 
     The coords returned are ``(lon, lat)`` to work with Plotly traces.
     """
 
-    for i in range(len(df)):
-        if "BOUNDED" in df.loc[df.index[i], "english"]:
-            data = df.loc[df.index[i], "english"]
-            data = [convert_coords(x) for x in _find_coord_strings(data)]
-            data = [(x[1], x[0]) for x in data]
-            df.at[df.index[i], "coords"] = data
+    for idx in df.index:
+        text = str(df.at[idx, "english"])
+        if "BOUNDED" in text:
+            df.at[idx, "coords"] = _coord_pairs(text)
+            df.at[idx, "geom"] = "polygon"
 
     return df
 
 
-def _find_coord_strings(text: str) -> list[str]:
-    return re.findall(r"\d{6}(?:\.\d+)?[NS] \d{7}(?:\.\d+)?[EW]", text)
+def _radius_metres(text: str) -> float:
+    """Return the radius of a CIRCLE/PSN NOTAM in metres, defaulting to 300 M."""
+    match = _RADIUS_RE.search(text)
+    if not match:
+        return 300.0
+    value, unit = match.groups()
+    return float(value) * _UNIT_METRES[unit]
 
 
 def add_multiple_circles(df: pd.DataFrame) -> pd.DataFrame:
-    """Add circle/PSN radius info, converted from regex into usable values."""
+    """Add circle/PSN radius info, converted from regex into usable values.
+
+    ``df["circles"]`` holds ``[radius_metres, [(lat, lon), ...]]`` per row --
+    one entry per coordinate centre, an empty string when the NOTAM has none.
+    """
 
     circle_list = []
-    for i in range(len(df)):
-        if "CIRCLE" in df.iloc[i].english:
-            cur_list = []
-            lat_matches = re.finditer(r"\d{6}(?:\.\d+)?[NS]", df.iloc[i].english)
-            lat_res = [m.group() for m in lat_matches]
-            lon_matches = re.finditer(r"\d{7}(?:\.\d+)?[EW]", df.iloc[i].english)
-            lon_res = [m.group() for m in lon_matches]
-            radius_match = re.search(r"\bRADIUS\b\s\d+(?:\.\d+)?\s?[a-zA-Z]+\b", df.iloc[i].english).group()
-            coord_matches = [lat_res[i] + " " + lon_res[i] for i in range(len(lat_res))]
-            cur_list.append(radius_match)
-            cur_list.append(coord_matches)
-            circle_list.append(cur_list)
-        elif "PSN" in df.iloc[i].english:
-            cur_list = []
-            lat_matches = re.finditer(r"\d{6}(?:\.\d+)?[NS]", df.iloc[i].english)
-            lat_res = [m.group() for m in lat_matches]
-            lon_matches = re.finditer(r"\d{7}(?:\.\d+)?[EW]", df.iloc[i].english)
-            lon_res = [m.group() for m in lon_matches]
-            coord_matches = [lat_res[i] + " " + lon_res[i] for i in range(len(lat_res))]
-            cur_list.append("RADIUS 300 M")
-            cur_list.append(coord_matches)
-            circle_list.append(cur_list)
+    for idx in df.index:
+        text = str(df.at[idx, "english"])
+        if "CIRCLE" in text or "PSN" in text:
+            centres = [f"{lat} {lon}" for lat, lon in zip(_LAT_RE.findall(text), _LON_RE.findall(text))]
+            circle_list.append([_radius_metres(text), [convert_coords(c) for c in centres]])
         else:
             circle_list.append("")
-
     df["circles"] = circle_list
-
-    dist_meas_map = {"M": 1, "NM": 1852, "KM": 1000}
-
-    for item in df.circles:
-        if item:
-            dist = re.search(r"[0-9]+(?:\.\d+)?", item[0]).group()
-            dist_meas = item[0][re.search(r"[0-9]+(?:\.\d+)?", item[0]).end() :].strip()
-
-            dist_miles = float(dist) * dist_meas_map[dist_meas]
-            item[0] = dist_miles
-            coord_lst = []
-            for coord_set in item[1]:
-                coord_lst.append(convert_coords(coord_set))
-            item[1] = coord_lst
 
     return df
 
@@ -240,31 +243,50 @@ def add_multiple_circles(df: pd.DataFrame) -> pd.DataFrame:
 def split_circles_add_indices(df: pd.DataFrame) -> pd.DataFrame:
     """Split rows if multiple circles are found."""
 
-    temp_master_data = pd.DataFrame(columns=df.columns)
-    for i in range(len(df)):
-        if isinstance(df.iloc[i].circles, list):
-            temp_df = pd.DataFrame(columns=df.columns)
-            for j in range(1, len(df.iloc[i].circles[1]) + 1):
-                newindex = f"{df.index[i]}_{j}"
-                cur_df = pd.DataFrame([df.iloc[i]], columns=df.columns, index=[newindex])
+    circle_rows = []
+    extra_rows = []
+    for idx in df.index:
+        circles = df.at[idx, "circles"]
+        if not isinstance(circles, list) or not circles[1]:
+            continue
+        circle_rows.append(idx)
+        radius, centres = circles
+        for j, centre in enumerate(centres, start=1):
+            row = df.loc[idx].copy()
+            row["coords"] = create_circle(centre, radius)
+            row["geom"] = "circle"
+            extra_rows.append((f"{idx}_{j}", row))
 
-                latlon = df.iloc[i].circles[1][j - 1]
-                radius = df.iloc[i].circles[0]
+    df = df.drop(circle_rows)
+    if extra_rows:
+        rows = pd.DataFrame([row for _, row in extra_rows], index=[key for key, _ in extra_rows])
+        df = pd.concat([df, rows])
 
-                cur_df.at[newindex, "coords"] = create_circle(latlon, radius)
-                temp_df = pd.concat([temp_df, cur_df])
-            temp_master_data = pd.concat([temp_master_data, temp_df])
+    return df
 
-    indexlist = list(temp_master_data.index)
 
-    prev_index = None
-    for new_index in indexlist:
-        index_to_compare = new_index.split("_")[0]
-        if index_to_compare != prev_index:
-            df.drop(index=index_to_compare, axis=0, inplace=True)
-        prev_index = index_to_compare
+def add_lines_and_points(df: pd.DataFrame) -> pd.DataFrame:
+    """Draw the NOTAMs that carry coordinates but no BOUNDED/CIRCLE/PSN shape.
 
-    return pd.concat([df, temp_master_data])
+    ``EITHER SIDE OF A LINE`` NOTAMs become a line through their coordinates;
+    the remaining ones (e.g. ``ON FLW POSITIONS``) become point markers.
+    NOTAMs that only amend published chart/AIP data (``... TO READ AS ...``)
+    don't describe a map feature and are skipped.
+    """
+
+    for idx in df.index:
+        if df.at[idx, "coords"]:
+            continue
+        text = str(df.at[idx, "english"])
+        if _READ_AMEND_RE.search(text):
+            continue
+        coords = _coord_pairs(text)
+        if not coords:
+            continue
+        df.at[idx, "coords"] = coords
+        df.at[idx, "geom"] = "line" if "LINE" in text else "point"
+
+    return df
 
 
 def create_jdata(df: pd.DataFrame) -> dict:
@@ -284,7 +306,7 @@ def create_jdata(df: pd.DataFrame) -> dict:
 
     jdata = copy.deepcopy(base_jdata)
     for i in range(len(df)):
-        if df.coords.iloc[i]:
+        if df.coords.iloc[i] and df["geom"].iloc[i] not in ("line", "point"):
             feat = copy.deepcopy(base_jdata_feature)
             feat["properties"].update({"id": df.index[i]})
             feat["geometry"]["coordinates"].append(df.coords.iloc[i])
@@ -420,30 +442,41 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
         )
     )
 
-    # a trace per shape
-    for i in range(len(df)):
-        if df.loc[df.index[i], "coords"]:
-            coords = df.loc[df.index[i], "coords"]
-            lon = [item[0] for item in coords]
-            lat = [item[1] for item in coords]
-            fig.add_trace(
-                go.Scattermapbox(
-                    name=_LEGEND_DIVIDER + df.loc[df.index[i], "wrap"],
-                    mode="lines",
-                    lon=lon,
-                    lat=lat,
-                    fill="toself",
-                    hoverinfo="skip",
-                    legendwidth=0.1,
-                    line=dict(color="tomato", width=1),
-                    meta=df.index[i],
-                )
+    # a trace per shape; shapes of the same NOTAM share one legend entry
+    seen_groups = set()
+    for idx in df.index:
+        if not df.at[idx, "coords"]:
+            continue
+        coords = df.at[idx, "coords"]
+        geom = df.at[idx, "geom"]
+        group = str(idx).rsplit("_", 1)[0]
+        trace_kwargs = dict(
+            name=_LEGEND_DIVIDER + df.at[idx, "wrap"],
+            lon=[item[0] for item in coords],
+            lat=[item[1] for item in coords],
+            hoverinfo="skip",
+            legendwidth=0.1,
+            legendgroup=group,
+            showlegend=group not in seen_groups,
+            meta=idx,
+        )
+        seen_groups.add(group)
+        if geom == "point":
+            trace_kwargs.update(mode="markers", marker=dict(color="tomato"))
+        elif geom == "line":
+            trace_kwargs.update(
+                mode="markers+lines",
+                line=dict(color="tomato", width=1),
+                marker=dict(color="tomato"),
             )
+        else:
+            trace_kwargs.update(mode="lines", fill="toself", line=dict(color="tomato", width=1))
+        fig.add_trace(go.Scattermapbox(**trace_kwargs))
 
     html = fig.to_html(
         full_html=True,
         include_plotlyjs=True,
-        config={"responsive": True},
+        config={"responsive": True, "scrollZoom": True},
         div_id="notamplot",
     )
     html = re.sub(
@@ -479,6 +512,8 @@ def handle(df, filepath_out=None, airports_str="omaa"):
     logger.info("multiple circles added")
     df = split_circles_add_indices(df)
     logger.info("circles split")
+    df = add_lines_and_points(df)
+    logger.info("lines and points added")
     jdata = create_jdata(df)
     logger.info("jdata created")
     back_traces(df, jdata, airports_str, filepath_out)

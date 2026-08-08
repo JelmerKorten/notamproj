@@ -11,7 +11,6 @@
 # external/old callers; it re-exports the public functions from the new
 # package. Archive it once all entry points stop importing it.
 
-from notamplotter.cleanup import cleanup
 from notamplotter.fetch import FaaClient, collect, fetch_notams
 from notamplotter.parse import (
     convert_coords,
@@ -35,7 +34,6 @@ __all__ = [
     "add_multiple_circles",
     "add_polygons",
     "back_traces",
-    "cleanup",
     "collect",
     "convert_coords",
     "create_circle",

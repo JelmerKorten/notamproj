@@ -51,7 +51,7 @@ _LIST_FIELDS = {"airports"}
 class Config:
     """Resolved runtime configuration."""
 
-    airports: list[str] = field(default_factory=lambda: ["omaa", "omae", "omad", "omam"])
+    airports: list[str] = field(default_factory=lambda: ["EHAM","NZSP","VHHH","SEQM"])
     files_dir: str = "files"
     output_dir: str = "output"
     retention_days: int = 5
@@ -75,10 +75,8 @@ class Config:
 
 
 def _env_file(base_dir: str | Path) -> Path:
-    """Return the ``.env`` path, falling back to ``.env.example`` if absent."""
-    base = Path(base_dir)
-    env = base / ".env"
-    return env if env.is_file() else base / ".env.example"
+    """Return the local ``.env`` path (loaded only if present)."""
+    return Path(base_dir) / ".env"
 
 
 def _load_file(base_dir: str | Path) -> dict:

@@ -4,10 +4,10 @@
 
 # Default airports to fetch/plot.
 airports:
-  - omaa
-  - omae
-  - omad
-  - omam
+  - EHAM
+  - NZSP
+  - VHHH
+  - SEQM
 
 # Output paths (relative to the project root).
 files_dir: files

@@ -11,7 +11,6 @@ import sys
 from datetime import date
 
 from notamplotter._logging import setup_logging, get_logger
-from notamplotter.cleanup import cleanup
 from notamplotter.config import Config
 from notamplotter.fetch import FaaClient, fetch_notams
 from notamplotter.parse import parse_faa_response
@@ -33,10 +32,6 @@ CFG = Config.load(ROOT)
 
 
 def main(root, cfg):
-    # Clean up old files to save memory
-    logger.info("calling cleanup()")
-    cleanup(base=root, days=cfg.retention_days)
-
     today = date.today().strftime("%Y%m%d")
     airports_str = "_".join(cfg.airports)
 

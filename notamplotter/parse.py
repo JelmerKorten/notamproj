@@ -27,6 +27,9 @@ logger = get_logger(__name__)
 # A NOTAM serial line such as ``A1718/25     NOTAMN`` or ``V0081/26 NOTAMN``.
 _SERIAL_RE = re.compile(r"^[A-Z]\d{4}/\d{2}")
 
+# A coordinate component: ``250320N``, ``251712.48N``, ``0552149.31E`` ...
+_DMS_RE = re.compile(r"(\d{2,3})(\d{2})(\d{2}(?:\.\d+)?)([NSEW])")
+
 # Marker code -> resulting field name for ICAO block lines.
 _BLOCK_FIELDS = {
     "Q": "short",
@@ -47,36 +50,15 @@ def convert_coords(latlon: str) -> tuple:
     """
 
     lat, lon = latlon.split()
+    return (_dms_to_decimal(lat), _dms_to_decimal(lon))
 
-    # latitude
-    hemi = lat[-1]
-    if "." in lat:
-        dec_lat_sec = float(re.search(r"\d{2}\.\d+", lat).group()) / 60
-        dec_lat_min = (float(re.search(r"\d+\.", lat).group()[-5:-3]) + dec_lat_sec) / 60
-    else:
-        dec_lat_sec = float(lat[-3:-1]) / 60
-        dec_lat_min = (float(lat[-5:-3]) + dec_lat_sec) / 60
 
-    lat_hrs = float(lat[:2])
-    dec_lat = lat_hrs + dec_lat_min
-    if hemi == "S":
-        dec_lat *= -1
-
-    # longitude
-    side_earth = lon[-1]
-    if "." in lon:
-        dec_lon_sec = float(re.search(r"\d{2}\.\d+", lon).group()) / 60
-        dec_lon_min = (float(re.search(r"\d+\.", lon).group()[-5:-3]) + dec_lon_sec) / 60
-    else:
-        dec_lon_sec = float(lon[-3:-1]) / 60
-        dec_lon_min = (float(lon[-5:-3]) + dec_lon_sec) / 60
-
-    lon_hrs = float(lon[:3])
-    dec_lon = lon_hrs + dec_lon_min
-    if side_earth == "W":
-        dec_lon *= -1
-
-    return (dec_lat, dec_lon)
+def _dms_to_decimal(coord: str) -> float:
+    """Convert one ``hhmmss.s(s)(N/S/E/W)`` component to signed decimal degrees."""
+    match = _DMS_RE.match(coord)
+    degrees, minutes, seconds, hemi = match.groups()
+    decimal = int(degrees) + (int(minutes) + float(seconds) / 60) / 60
+    return -decimal if hemi in "SW" else decimal
 
 
 def create_circle(latlon: tuple, radius: int) -> list:
@@ -107,6 +89,7 @@ def _to_frame(notams: list[Notam]) -> pd.DataFrame:
     df = df.reindex(columns=NOTAM_FIELDS)
     df["coords"] = ""
     df["wrap"] = ""
+    df["geom"] = ""
     for i in range(len(df)):
         idx = df.index[i]
         if df.loc[idx, "english"]:
