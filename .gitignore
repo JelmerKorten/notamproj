@@ -35,7 +35,6 @@ htmlcov/
 # --- Private plot overlay (location-specific routes/grid) ---
 # Copy plot_overlay.example.json to plot_overlay.json and fill in.
 plot_overlay.json
-!.env.example
 
 # --- Regenerated data / plot output ---
 tests/
