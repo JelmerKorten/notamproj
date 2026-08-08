@@ -29,7 +29,6 @@ ENV_MAPPING = {
     "NOTAM_AIRPORTS": "airports",
     "NOTAM_OUTPUT_DIR": "output_dir",
     "NOTAM_FILES_DIR": "files_dir",
-    "NOTAM_CLEANUP_DAYS": "retention_days",
     "NOTAM_LOG_LEVEL": "log_level",
     "FAA_API_BASE_URL": "faa_api_base_url",
     "SMTP_HOST": "smtp_host",
@@ -43,7 +42,7 @@ ENV_MAPPING = {
 # Keys accepted under the optional ``email:`` section of the config file.
 EMAIL_FILE_KEYS = {"smtp_host", "smtp_port", "smtp_user", "smtp_pass", "email_from", "email_to"}
 
-_INT_FIELDS = {"retention_days", "smtp_port"}
+_INT_FIELDS = {"smtp_port"}
 _LIST_FIELDS = {"airports"}
 
 
@@ -97,7 +96,7 @@ def _load_file(base_dir: str | Path) -> dict:
 
 def _apply_file(file_cfg: dict, merged: dict) -> dict:
     """Merge ``nested = {"email": {...}}``-style file config into flat keys."""
-    for key in ("airports", "files_dir", "output_dir", "retention_days", "log_level", "faa_api_base_url"):
+    for key in ("airports", "files_dir", "output_dir", "log_level", "faa_api_base_url"):
         if key in file_cfg:
             _coerce(merged, key, file_cfg[key])
     email = file_cfg.get("email") or {}

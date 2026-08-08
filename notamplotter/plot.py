@@ -8,9 +8,11 @@ the GCAA path (:func:`handle_gcaa`).
 """
 
 import copy
+import json
 import re
 from datetime import date
 from html import escape
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -19,6 +21,10 @@ from notamplotter._logging import get_logger
 from notamplotter.parse import convert_coords, create_circle
 
 logger = get_logger(__name__)
+
+# Optional private plot overlay (git-ignored) holding map center/zoom,
+# commonly used routes and grid bounds. Absent -> neutral defaults.
+_OVERLAY_FILE = "plot_overlay.json"
 
 # Coordinate formats found in NOTAM text: a full pair ``250320N 0544740E`` and
 # the individual lat / lon components used to pair up circle centres.
@@ -315,11 +321,26 @@ def create_jdata(df: pd.DataFrame) -> dict:
     return jdata
 
 
+def _load_overlay() -> dict:
+    """Load the optional ``plot_overlay.json`` (absent -> empty dict)."""
+    path = Path(_OVERLAY_FILE)
+    if not path.is_file():
+        return {}
+    with path.open() as fh:
+        return json.load(fh)
+
+
 def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: str) -> None:
     """Plot the required shapes and write the final ``.html`` to ``filepath_out``."""
 
     ROUTECOL = "teal"
     LEG_WIDTH = 25
+
+    overlay = _load_overlay()
+    center = overlay.get("center", {"lon": 0.0, "lat": 0.0})
+    zoom = overlay.get("zoom", 1)
+    routes = overlay.get("routes", [])
+    grid = overlay.get("grid", {})
 
     today = date.today()
     plottitle = today.strftime("%Y %b %d")
@@ -347,8 +368,8 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
         autosize=True,
         mapbox={
             "style": "open-street-map",
-            "center": {"lon": 54.651512, "lat": 24.442970},
-            "zoom": 9,
+            "center": center,
+            "zoom": zoom,
         },
         margin={"l": 0, "r": 0, "b": 0, "t": 30},
     )
@@ -358,89 +379,51 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
     fig.update_layout(legend=dict(itemdoubleclick=False))
 
     # commonly used routes
-    fig.add_trace(
-        go.Scattermapbox(
-            name="aa3",
-            mode="markers+lines",
-            lon=[54.2, 54.3152, 54.45, 54.5377, 54.5982, 54.660418, 54.6112, 54.5458, 54.452, 54.3143, 54.1852],
-            lat=[24.3745, 24.32, 24.3437, 24.3473, 24.4047, 24.420518, 24.393, 24.3307, 24.3273, 24.3, 24.3572],
-            legendwidth=LEG_WIDTH,
-            line=dict(color=ROUTECOL),
+    for route in routes:
+        fig.add_trace(
+            go.Scattermapbox(
+                name=route["name"],
+                mode="markers+lines",
+                lon=route["lon"],
+                lat=route["lat"],
+                legendwidth=LEG_WIDTH,
+                line=dict(color=ROUTECOL),
+            )
         )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            name="aa1",
-            mode="markers+lines",
-            lon=[54.589, 54.692, 54.681, 54.6604, 54.6633, 54.6732, 54.589],
-            lat=[24.6345, 24.553, 24.482, 24.4205, 24.4867, 24.5515, 24.619],
-            legendwidth=LEG_WIDTH,
-            line=dict(color=ROUTECOL),
-        )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            name="ad7",
-            mode="markers+lines",
-            lon=[54.4572, 54.4493, 54.4033, 54.2863],
-            lat=[24.4133, 24.3928, 24.4122, 24.4533],
-            legendwidth=LEG_WIDTH,
-            line=dict(color=ROUTECOL),
-        )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            name="aa3_dab",
-            mode="markers+lines",
-            lon=[54.3143, 54.144],
-            lat=[24.3, 24.3187],
-            legendwidth=LEG_WIDTH,
-            line=dict(color=ROUTECOL),
-        )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            name="aa3_dab",
-            mode="markers+lines",
-            lon=[54.3152, 54.1518],
-            lat=[24.32, 24.338],
-            legendwidth=LEG_WIDTH,
-            line=dict(color=ROUTECOL),
-        )
-    )
 
     # grid lines
-    minlon = 53.5
-    maxlon = 56.5
-    minlat = 24
-    maxlat = 26
-    gridlon = []
-    for i in range(int(minlon * 10), int(maxlon * 10)):
-        gridlon += [i / 10] * int((maxlat - minlat) * 10)
-        gridlon.append(None)
-    for i in range(int((maxlat - minlat) * 10)):
-        gridlon += [i / 10 for i in range(int(minlon * 10), int(maxlon * 10))]
-        gridlon.append(None)
+    if grid:
+        minlon = grid["minlon"]
+        maxlon = grid["maxlon"]
+        minlat = grid["minlat"]
+        maxlat = grid["maxlat"]
+        gridlon = []
+        for i in range(int(minlon * 10), int(maxlon * 10)):
+            gridlon += [i / 10] * int((maxlat - minlat) * 10)
+            gridlon.append(None)
+        for i in range(int((maxlat - minlat) * 10)):
+            gridlon += [i / 10 for i in range(int(minlon * 10), int(maxlon * 10))]
+            gridlon.append(None)
 
-    gridlat = []
-    for i in range(int((maxlon - minlon) * 10)):
-        gridlat += [i / 10 for i in range(int(minlat * 10), int(maxlat * 10))]
-        gridlat.append(None)
-    for i in range(int(minlat * 10), int(maxlat * 10)):
-        gridlat += [i / 10] * int((maxlon - minlon) * 10)
-        gridlat.append(None)
+        gridlat = []
+        for i in range(int((maxlon - minlon) * 10)):
+            gridlat += [i / 10 for i in range(int(minlat * 10), int(maxlat * 10))]
+            gridlat.append(None)
+        for i in range(int(minlat * 10), int(maxlat * 10)):
+            gridlat += [i / 10] * int((maxlon - minlon) * 10)
+            gridlat.append(None)
 
-    fig.add_trace(
-        go.Scattermapbox(
-            name="grid",
-            mode="lines",
-            lon=gridlon,
-            lat=gridlat,
-            below="true",
-            legendwidth=50,
-            line=dict(color="lightgrey", width=1),
+        fig.add_trace(
+            go.Scattermapbox(
+                name="grid",
+                mode="lines",
+                lon=gridlon,
+                lat=gridlat,
+                below="true",
+                legendwidth=50,
+                line=dict(color="lightgrey", width=1),
+            )
         )
-    )
 
     # a trace per shape; shapes of the same NOTAM share one legend entry
     seen_groups = set()
