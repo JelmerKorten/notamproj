@@ -338,15 +338,11 @@ EMAIL_FROM=your@email.com
 EMAIL_TO=recipient@email.com
 
 # === App Config ===
-NOTAM_AIRPORTS=OMAA,OMAE,OMAD,OMAM
+NOTAM_AIRPORTS=EHAM,NZSP,VHHH,SEQM
 NOTAM_OUTPUT_DIR=./output
 NOTAM_FILES_DIR=./files
-NOTAM_CLEANUP_DAYS=5
 NOTAM_LOG_LEVEL=INFO
 
-# === GCAA Fallback (if kept) ===
-GCAA_USERNAME=   # if auth required
-GCAA_PASSWORD=   # Never commit this
 ```
 
 Load with:
