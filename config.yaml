@@ -13,9 +13,6 @@ airports:
 files_dir: files
 output_dir: output
 
-# Delete files in files_dir/output_dir older than this many days.
-retention_days: 5
-
 # Root logging level.
 log_level: INFO
 

@@ -54,7 +54,6 @@ class Config:
     airports: list[str] = field(default_factory=lambda: ["EHAM","NZSP","VHHH","SEQM"])
     files_dir: str = "files"
     output_dir: str = "output"
-    retention_days: int = 5
     log_level: str = "INFO"
     faa_api_base_url: str = "https://notams.aim.faa.gov/notamSearch"
     smtp_host: str = ""

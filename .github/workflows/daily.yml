@@ -1,0 +1,43 @@
+name: Daily NOTAM
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Fetch NOTAMs
+        run: notamplotter fetch
+
+      - name: Build HTML plot
+        run: notamplotter plot "$(ls -t files/*_notams_*.csv | head -1)"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: notam-output
+          path: |
+            output/*.html
+            files/*_notams_*.csv
+          retention-days: 7
