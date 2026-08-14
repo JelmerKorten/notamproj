@@ -29,6 +29,8 @@ jobs:
 
       - name: Fetch NOTAMs
         run: notamplotter fetch
+        env:
+          NOTAM_AIRPORTS: ${{ secrets.NOTAM_AIRPORTS }}
 
       - name: Build HTML plot
         run: notamplotter plot "$(ls -t files/*_notams_*.csv | head -1)"
