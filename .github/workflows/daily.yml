@@ -32,6 +32,11 @@ jobs:
         env:
           NOTAM_AIRPORTS: ${{ secrets.NOTAM_AIRPORTS }}
 
+      - name: Write plot overlay
+        run: printf '%s' "$PLOT_OVERLAY" > plot_overlay.json
+        env:
+          PLOT_OVERLAY: ${{ secrets.PLOT_OVERLAY }}
+
       - name: Build HTML plot
         run: notamplotter plot "$(ls -t files/*_notams_*.csv | head -1)"
         env:
