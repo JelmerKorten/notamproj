@@ -34,6 +34,8 @@ jobs:
 
       - name: Build HTML plot
         run: notamplotter plot "$(ls -t files/*_notams_*.csv | head -1)"
+        env:
+          NOTAM_AIRPORTS: ${{ secrets.NOTAM_AIRPORTS }}
 
       - name: Email NOTAMs
         continue-on-error: true
