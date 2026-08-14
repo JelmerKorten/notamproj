@@ -25,6 +25,9 @@ dev = [
     "pytest==8.3.5",
     "ruff==0.12.0"
 ]
+oauth = [
+    "google-auth-oauthlib==1.4.0"
+]
 
 
 [tool.ruff]

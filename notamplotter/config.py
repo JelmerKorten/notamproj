@@ -37,10 +37,23 @@ ENV_MAPPING = {
     "SMTP_PASS": "smtp_pass",
     "EMAIL_FROM": "email_from",
     "EMAIL_TO": "email_to",
+    "GOOGLE_CLIENT_ID": "google_client_id",
+    "GOOGLE_CLIENT_SECRET": "google_client_secret",
+    "GOOGLE_REFRESH_TOKEN": "google_refresh_token",
 }
 
 # Keys accepted under the optional ``email:`` section of the config file.
-EMAIL_FILE_KEYS = {"smtp_host", "smtp_port", "smtp_user", "smtp_pass", "email_from", "email_to"}
+EMAIL_FILE_KEYS = {
+    "smtp_host",
+    "smtp_port",
+    "smtp_user",
+    "smtp_pass",
+    "email_from",
+    "email_to",
+    "google_client_id",
+    "google_client_secret",
+    "google_refresh_token",
+}
 
 _INT_FIELDS = {"smtp_port"}
 _LIST_FIELDS = {"airports"}
@@ -61,6 +74,9 @@ class Config:
     smtp_pass: str = ""
     email_from: str = ""
     email_to: str = ""
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_refresh_token: str = ""
 
     @classmethod
     def load(cls, base_dir: str | Path = ".") -> "Config":

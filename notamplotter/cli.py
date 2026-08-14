@@ -134,6 +134,34 @@ def cmd_email(args, html_path: str | None = None) -> None:
     logger.info("email sent")
 
 
+def cmd_auth(args) -> None:
+    """Run the one-time Google OAuth consent flow and print the refresh token."""
+    cfg = _resolve_config(args)
+    if not (cfg.google_client_id and cfg.google_client_secret):
+        raise ValueError(
+            "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set (env vars / config) before running auth"
+        )
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+    except ImportError as exc:  # pragma: no cover
+        raise RuntimeError("run `pip install -e '.[oauth]'` to get the OAuth bootstrap dependency") from exc
+    from notamplotter.gmail_oauth import SCOPE_GMAIL_SMTP
+
+    client_config = {
+        "installed": {
+            "client_id": cfg.google_client_id,
+            "client_secret": cfg.google_client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+    }
+    flow = InstalledAppFlow.from_client_config(client_config, scopes=[SCOPE_GMAIL_SMTP])
+    credentials = flow.run_local_server(port=0, open_browser=True)
+    if not credentials.refresh_token:
+        raise RuntimeError("OAuth flow returned no refresh token")
+    print(f"GOOGLE_REFRESH_TOKEN={credentials.refresh_token}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="notamplotter",
@@ -166,6 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_email = sub.add_parser("email", help="email the latest HTML in the output directory")
     p_email.add_argument("--html", help="path to the .html file to send (default: newest in output/)")
 
+    sub.add_parser(
+        "auth",
+        help="run the one-time Google OAuth consent flow (prints GOOGLE_REFRESH_TOKEN)",
+    )
+
     return parser
 
 
@@ -173,7 +206,7 @@ def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
     command = args.command
     try:
-        {"daily": cmd_daily, "fetch": cmd_fetch, "plot": cmd_plot, "email": cmd_email}[command](args)
+        {"daily": cmd_daily, "fetch": cmd_fetch, "plot": cmd_plot, "email": cmd_email, "auth": cmd_auth}[command](args)
     except (FileNotFoundError, ValueError) as exc:
         logger.error("%s", exc)
         sys.exit(1)

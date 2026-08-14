@@ -33,6 +33,19 @@ jobs:
       - name: Build HTML plot
         run: notamplotter plot "$(ls -t files/*_notams_*.csv | head -1)"
 
+      - name: Email NOTAMs
+        continue-on-error: true
+        run: notamplotter email
+        env:
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.GMAIL_USER }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
