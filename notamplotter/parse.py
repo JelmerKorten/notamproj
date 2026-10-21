@@ -19,10 +19,7 @@ from pyproj import Transformer
 from shapely.geometry import Point
 from shapely.ops import transform
 
-from notamplotter._logging import get_logger
 from notamplotter.models import NOTAM_FIELDS, Notam
-
-logger = get_logger(__name__)
 
 # A NOTAM serial line such as ``A1718/25     NOTAMN`` or ``V0081/26 NOTAMN``.
 _SERIAL_RE = re.compile(r"^[A-Z]\d{4}/\d{2}")
@@ -88,12 +85,8 @@ def _to_frame(notams: list[Notam]) -> pd.DataFrame:
     df = pd.DataFrame.from_dict(rows, orient="index")
     df = df.reindex(columns=NOTAM_FIELDS)
     df["coords"] = ""
-    df["wrap"] = ""
+    df["wrap"] = [_wrap_notam(idx, row) if row["english"] else "" for idx, row in df.iterrows()]
     df["geom"] = ""
-    for i in range(len(df)):
-        idx = df.index[i]
-        if df.loc[idx, "english"]:
-            df.at[idx, "wrap"] = _wrap_notam(idx, df.loc[idx])
     return df
 
 
@@ -196,8 +189,3 @@ def parse_faa_response(data: dict) -> pd.DataFrame:
             Notam.from_dict(serial=parsed["serial"], data={k: v for k, v in parsed.items() if k != "serial"})
         )
     return _to_frame(notams)
-
-
-def re_match_serial(text: str) -> bool:
-    """Return True if ``text`` looks like a NOTAM serial line (e.g. ``A1718/25``)."""
-    return bool(_SERIAL_RE.match(text))

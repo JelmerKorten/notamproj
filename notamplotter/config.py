@@ -20,10 +20,6 @@ import tomllib
 
 from dotenv import load_dotenv
 
-from notamplotter._logging import get_logger
-
-logger = get_logger(__name__)
-
 # Environment variables with the highest precedence: ENV name -> Config field.
 ENV_MAPPING = {
     "NOTAM_AIRPORTS": "airports",

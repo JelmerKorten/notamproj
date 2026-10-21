@@ -194,8 +194,8 @@ _SEARCH_JS = r"""
       if (search) search.value = '';
       setVisible(null);
       Plotly.relayout(gd, {
-        'mapbox.center': { lon: 54.651512, lat: 24.442970 },
-        'mapbox.zoom': 9,
+        'mapbox.center': __RESET_CENTER__,
+        'mapbox.zoom': __RESET_ZOOM__,
         'mapbox.bounds': null
       });
     });
@@ -328,9 +328,9 @@ def create_jdata(df: pd.DataFrame) -> dict:
     return jdata
 
 
-def _load_overlay() -> dict:
-    """Load the optional ``plot_overlay.json`` (absent -> empty dict)."""
-    path = Path(_OVERLAY_FILE)
+def _load_overlay(base_dir: str | Path = ".") -> dict:
+    """Load the optional ``plot_overlay.json`` from ``base_dir`` (absent -> empty dict)."""
+    path = Path(base_dir) / _OVERLAY_FILE
     if not path.is_file():
         return {}
     with path.open() as fh:
@@ -343,15 +343,23 @@ def back_traces(
     airports_str: str,
     filepath_out: str,
     map_style: str = DEFAULT_MAP_STYLE,
+    base_dir: str | Path = ".",
 ) -> None:
     """Plot the required shapes and write the final ``.html`` to ``filepath_out``."""
 
     ROUTECOL = "teal"
     LEG_WIDTH = 25
 
-    overlay = _load_overlay()
-    center = overlay.get("center", {"lon": 0.0, "lat": 0.0})
-    zoom = overlay.get("zoom", 1)
+    overlay = _load_overlay(base_dir)
+    raw_center = overlay.get("center", {"lon": 0.0, "lat": 0.0})
+    try:
+        center = {
+            "lon": float(raw_center.get("lon", 0.0)),
+            "lat": float(raw_center.get("lat", 0.0)),
+        }
+        zoom = float(overlay.get("zoom", 1))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("plot_overlay.json center/zoom must be numeric") from exc
     routes = overlay.get("routes", [])
     grid = overlay.get("grid", {})
 
@@ -488,20 +496,30 @@ def back_traces(
         "#notam-reset{padding:6px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:13px;cursor:pointer;}"
         "</style></head>",
     )
-    html = html.replace("</body>", _SEARCH_UI + "<script>" + _SEARCH_JS + "</script></body>")
+    reset_center = json.dumps(center)
+    search_js = _SEARCH_JS.replace("__RESET_CENTER__", reset_center).replace("__RESET_ZOOM__", json.dumps(zoom))
+    html = html.replace("</body>", _SEARCH_UI + "<script>" + search_js + "</script></body>")
+    Path(filepath_out).parent.mkdir(parents=True, exist_ok=True)
     with open(filepath_out, "w") as file:
         file.write(html)
     logger.info("html file created in output folder")
 
 
-def handle(df, filepath_out=None, airports_str="omaa", map_style: str = DEFAULT_MAP_STYLE):
+def handle(
+    df,
+    filepath_out=None,
+    airports_str="omaa",
+    map_style: str = DEFAULT_MAP_STYLE,
+    base_dir: str | Path = ".",
+):
     """Plot a NOTAM DataFrame and write an ``.html`` plot to ``filepath_out``.
 
     ``df`` is the plotting DataFrame produced by
     :func:`~notamplotter.parse.parse_faa_response` (or
     :func:`~notamplotter.parse.readnotams`). ``map_style`` is any MapLibre
     style URL; it defaults to the OpenFreeMap basemap instead of the public
-    OpenStreetMap tile server.
+    OpenStreetMap tile server. ``base_dir`` is where ``plot_overlay.json`` is
+    read from.
     """
     logger.info("running handle()")
     df = add_polygons(df)
@@ -514,4 +532,4 @@ def handle(df, filepath_out=None, airports_str="omaa", map_style: str = DEFAULT_
     logger.info("lines and points added")
     jdata = create_jdata(df)
     logger.info("jdata created")
-    back_traces(df, jdata, airports_str, filepath_out, map_style=map_style)
+    back_traces(df, jdata, airports_str, filepath_out, map_style=map_style, base_dir=base_dir)

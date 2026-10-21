@@ -24,7 +24,6 @@ logger = get_logger(__name__)
 _DEFAULT_BASE_URL = "https://notams.aim.faa.gov/notamSearch"
 _TIMEOUT = 30
 _RETRIES = 3
-_PAGE_SIZE = 30
 
 # ICAO location indicators / designators are purely alphanumeric (e.g. OMAA,
 # KZLA, HE24). Restricting input here blocks path traversal, SMTP header
@@ -104,12 +103,6 @@ class FaaClient:
         logger.warning("FAA API request failed (%s); retrying in %ss", exc, wait)
         time.sleep(wait)
 
-    def search(self, designators: list[str] | str, offset: int = 0) -> dict:
-        """Fetch one page of NOTAMs for ``designators`` starting at ``offset``."""
-        if not self._session.cookies:
-            self._get_cookies()
-        return self._search_page(_normalize_designators(designators), offset)
-
     def fetch_all(self, designators: list[str] | str) -> list[dict]:
         """Fetch every page of NOTAMs for ``designators`` and return the list."""
         if not self._session.cookies:
@@ -130,25 +123,26 @@ class FaaClient:
         return all_notams
 
 
-def fetch_notams(designators: list[str] | str, client: FaaClient | None = None) -> list[dict]:
-    """Fetch all NOTAMs for ``designators`` and return the raw ``notamList``."""
-    client = client or FaaClient()
-    return client.fetch_all(designators)
-
-
-def collect(base, airports: str | list[str], client: FaaClient | None = None) -> str:
-    """Fetch NOTAMs for ``airports`` and write them to ``files/{today}_notams_*.csv``.
+def collect(
+    base,
+    airports: str | list[str],
+    client: FaaClient | None = None,
+    files_dir: str = "files",
+) -> str:
+    """Fetch NOTAMs for ``airports`` and write them to ``{files_dir}/{today}_notams_*.csv``.
 
     Returns the path of the written file. Blocks are stored verbatim from the
     API ``icaoMessage`` field, separated by blank lines, so the file can be
     re-read with :func:`notamplotter.parse.readnotams`.
     """
     today = date.today().strftime("%Y%m%d")
-    airports_str = "_".join(code.lower() for code in _normalize_designators(airports))
+    normalized = _normalize_designators(airports)
+    airports_str = "_".join(code.lower() for code in normalized)
     client = client or FaaClient()
-    notams = client.fetch_all(_normalize_designators(airports))
+    notams = client.fetch_all(normalized)
 
-    filepath = os.path.join(base, "files", f"{today}_notams_{airports_str}.csv")
+    filepath = os.path.join(base, files_dir, f"{today}_notams_{airports_str}.csv")
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w") as file:
         for notam in notams:
             file.write((notam.get("icaoMessage") or "").strip())

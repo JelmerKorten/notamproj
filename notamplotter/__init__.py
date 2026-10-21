@@ -9,7 +9,6 @@ this package:
 * ``plot``    -- geo/polygon logic and HTML generation
 * ``fetch``   -- FAA API client
 * ``_logging``-- centralised logging
-* ``_logging``-- centralised logging
 """
 
 __version__ = "0.1.5"

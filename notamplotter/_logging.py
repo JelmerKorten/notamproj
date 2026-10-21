@@ -13,8 +13,13 @@ LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def setup_logging(level: int = logging.DEBUG, filename: str = LOG_FILE) -> None:
+def setup_logging(level: int | str = logging.INFO, filename: str = LOG_FILE) -> None:
     """Configure the root logger.  Idempotent; safe to call from every entry point."""
+    if isinstance(level, str):
+        try:
+            level = logging.getLevelNamesMapping()[level.upper()]
+        except KeyError as exc:
+            raise ValueError(f"invalid log level: {level!r}") from exc
     logging.basicConfig(
         level=level,
         filename=filename,
