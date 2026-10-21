@@ -26,12 +26,12 @@ from notamplotter.fetch import FaaClient, _normalize_designators, collect
 from notamplotter.parse import readnotams
 from notamplotter.plot import handle
 
-setup_logging()
 logger = get_logger(__name__)
 
 
 def _resolve_config(args) -> Config:
     cfg = Config.load(args.base)
+    setup_logging(cfg.log_level)
     if args.airports:
         cfg.airports = [code.strip().lower() for code in args.airports.split(",") if code.strip()]
     _normalize_designators(cfg.airports)  # raises ValueError on any invalid code
@@ -46,12 +46,12 @@ def _today_str() -> str:
     return date.today().strftime("%Y%m%d")
 
 
-def _default_output(cfg: Config) -> str:
-    return os.path.join(cfg.output_dir, f"{_today_str()}_notams_{_airports_str(cfg)}.html")
+def _default_output(cfg: Config, base: str = ".") -> str:
+    return os.path.join(base, cfg.output_dir, f"{_today_str()}_notams_{_airports_str(cfg)}.html")
 
 
-def _default_csv(cfg: Config) -> str:
-    return os.path.join(cfg.files_dir, f"{_today_str()}_notams_{_airports_str(cfg)}.csv")
+def _default_csv(cfg: Config, base: str = ".") -> str:
+    return os.path.join(base, cfg.files_dir, f"{_today_str()}_notams_{_airports_str(cfg)}.csv")
 
 
 def _send_email(cfg: Config, html_path: str) -> None:
@@ -80,13 +80,19 @@ def cmd_daily(args) -> None:
     API call) or ``--recreate`` (rebuild from today's cached CSV) is given.
     """
     cfg = _resolve_config(args)
-    output_file = _default_output(cfg)
+    output_file = _default_output(cfg, args.base)
 
     if args.recreate:
-        csv_file = _default_csv(cfg)
+        csv_file = _default_csv(cfg, args.base)
         logger.info("rebuilding %s from %s", output_file, csv_file)
         df = readnotams(csv_file, airports_str=_airports_str(cfg))
-        handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
+        handle(
+            df,
+            filepath_out=output_file,
+            airports_str=_airports_str(cfg),
+            map_style=cfg.map_style,
+            base_dir=args.base,
+        )
         _send_email(cfg, output_file)
         return
 
@@ -96,11 +102,17 @@ def cmd_daily(args) -> None:
 
     logger.info("fetching NOTAMs for %s", ", ".join(cfg.airports))
     client = FaaClient(base_url=cfg.faa_api_base_url)
-    csv_file = collect(base=args.base, airports=cfg.airports, client=client)
+    csv_file = collect(base=args.base, airports=cfg.airports, client=client, files_dir=cfg.files_dir)
 
     df = readnotams(csv_file, airports_str=_airports_str(cfg))
     logger.info("parsed %d notams", len(df))
-    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
+    handle(
+        df,
+        filepath_out=output_file,
+        airports_str=_airports_str(cfg),
+        map_style=cfg.map_style,
+        base_dir=args.base,
+    )
     logger.info("html written to %s", output_file)
 
     _send_email(cfg, output_file)
@@ -110,25 +122,31 @@ def cmd_fetch(args) -> None:
     """Fetch NOTAMs and save a CSV file."""
     cfg = _resolve_config(args)
     client = FaaClient(base_url=cfg.faa_api_base_url)
-    filepath = collect(base=args.base, airports=cfg.airports, client=client)
+    filepath = collect(base=args.base, airports=cfg.airports, client=client, files_dir=cfg.files_dir)
     logger.info("csv saved to %s", filepath)
 
 
 def cmd_plot(args) -> None:
     """Build HTML from an existing CSV."""
     cfg = _resolve_config(args)
-    output_file = args.output or _default_output(cfg)
+    output_file = args.output or _default_output(cfg, args.base)
 
     df = readnotams(args.csv, airports_str=_airports_str(cfg))
     logger.info("read %d notams from %s", len(df), args.csv)
-    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
+    handle(
+        df,
+        filepath_out=output_file,
+        airports_str=_airports_str(cfg),
+        map_style=cfg.map_style,
+        base_dir=args.base,
+    )
     logger.info("html written to %s", output_file)
 
 
 def cmd_email(args, html_path: str | None = None) -> None:
     """Email the latest HTML (or ``html_path``) in the output directory."""
     cfg = _resolve_config(args)
-    path = html_path or args.html or _latest_html(cfg.output_dir)
+    path = html_path or args.html or _latest_html(os.path.join(args.base, cfg.output_dir))
     email_cfg = EmailConfig.from_config(cfg)
     send_html_email(email_cfg, path)
     logger.info("email sent")
