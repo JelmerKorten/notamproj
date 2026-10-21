@@ -35,7 +35,24 @@ Defaults live in `config.yaml` (committed). Override with environment variables 
 
 Precedence: environment variables > `config.yaml` > built-in defaults.
 
-Key options: `airports`, `output_dir`, `files_dir`, `log_level`, and the SMTP settings (`smtp_host`, `smtp_port`, `smtp_user`, `smtp_pass`, `email_from`, `email_to`) used by `daily`/`email`.
+Key options: `airports`, `output_dir`, `files_dir`, `log_level`, `map_style`, and the SMTP settings (`smtp_host`, `smtp_port`, `smtp_user`, `smtp_pass`, `email_from`, `email_to`) used by `daily`/`email`.
+
+## Map tiles
+
+The basemap comes from [OpenFreeMap](https://openfreemap.org), an OSM-derived
+tile service that is free, keyless and unmetered. Its MapLibre style is set by
+`map_style` and defaults to `https://tiles.openfreemap.org/styles/liberty`.
+
+The public OpenStreetMap tile server (`open-street-map`) is intentionally not
+used. Its [tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
+forbids bulk downloading, prefetching and offline caching, and blocks
+automated/app traffic without notice. No GitHub-side tile cache is needed:
+OpenFreeMap serves versioned tiles with long-lived cache headers, so repeat
+views are served from the browser cache, while the style/TileJSON picks up new
+OSM data automatically as it is published.
+
+Point `map_style` / `MAP_STYLE` at another MapLibre style URL to use a
+self-hosted or commercial provider instead.
 
 ## Development
 

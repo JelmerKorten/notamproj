@@ -86,7 +86,7 @@ def cmd_daily(args) -> None:
         csv_file = _default_csv(cfg)
         logger.info("rebuilding %s from %s", output_file, csv_file)
         df = readnotams(csv_file, airports_str=_airports_str(cfg))
-        handle(df, filepath_out=output_file, airports_str=_airports_str(cfg))
+        handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
         _send_email(cfg, output_file)
         return
 
@@ -100,7 +100,7 @@ def cmd_daily(args) -> None:
 
     df = readnotams(csv_file, airports_str=_airports_str(cfg))
     logger.info("parsed %d notams", len(df))
-    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg))
+    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
     logger.info("html written to %s", output_file)
 
     _send_email(cfg, output_file)
@@ -121,7 +121,7 @@ def cmd_plot(args) -> None:
 
     df = readnotams(args.csv, airports_str=_airports_str(cfg))
     logger.info("read %d notams from %s", len(df), args.csv)
-    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg))
+    handle(df, filepath_out=output_file, airports_str=_airports_str(cfg), map_style=cfg.map_style)
     logger.info("html written to %s", output_file)
 
 

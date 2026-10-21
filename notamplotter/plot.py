@@ -26,6 +26,13 @@ logger = get_logger(__name__)
 # commonly used routes and grid bounds. Absent -> neutral defaults.
 _OVERLAY_FILE = "plot_overlay.json"
 
+# Basemap style used when the config does not override it. The public
+# OpenStreetMap tile server (``open-street-map``) forbids app/bulk use, so we
+# use OpenFreeMap's public MapLibre style instead: OSM-derived, no API key, no
+# request limits, and up-to-date tiles. Any MapLibre style URL can be supplied
+# via the ``MAP_STYLE`` config/env var (e.g. a self-hosted tile style).
+DEFAULT_MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty"
+
 # Coordinate formats found in NOTAM text: a full pair ``250320N 0544740E`` and
 # the individual lat / lon components used to pair up circle centres.
 _COORD_RE = re.compile(r"\d{6}(?:\.\d+)?[NS] \d{7}(?:\.\d+)?[EW]")
@@ -330,7 +337,13 @@ def _load_overlay() -> dict:
         return json.load(fh)
 
 
-def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: str) -> None:
+def back_traces(
+    df: pd.DataFrame,
+    jdata: dict,
+    airports_str: str,
+    filepath_out: str,
+    map_style: str = DEFAULT_MAP_STYLE,
+) -> None:
     """Plot the required shapes and write the final ``.html`` to ``filepath_out``."""
 
     ROUTECOL = "teal"
@@ -367,7 +380,7 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
         title_x=0.5,
         autosize=True,
         mapbox={
-            "style": "open-street-map",
+            "style": map_style,
             "center": center,
             "zoom": zoom,
         },
@@ -481,12 +494,14 @@ def back_traces(df: pd.DataFrame, jdata: dict, airports_str: str, filepath_out: 
     logger.info("html file created in output folder")
 
 
-def handle(df, filepath_out=None, airports_str="omaa"):
+def handle(df, filepath_out=None, airports_str="omaa", map_style: str = DEFAULT_MAP_STYLE):
     """Plot a NOTAM DataFrame and write an ``.html`` plot to ``filepath_out``.
 
     ``df`` is the plotting DataFrame produced by
     :func:`~notamplotter.parse.parse_faa_response` (or
-    :func:`~notamplotter.parse.readnotams`).
+    :func:`~notamplotter.parse.readnotams`). ``map_style`` is any MapLibre
+    style URL; it defaults to the OpenFreeMap basemap instead of the public
+    OpenStreetMap tile server.
     """
     logger.info("running handle()")
     df = add_polygons(df)
@@ -499,4 +514,4 @@ def handle(df, filepath_out=None, airports_str="omaa"):
     logger.info("lines and points added")
     jdata = create_jdata(df)
     logger.info("jdata created")
-    back_traces(df, jdata, airports_str, filepath_out)
+    back_traces(df, jdata, airports_str, filepath_out, map_style=map_style)

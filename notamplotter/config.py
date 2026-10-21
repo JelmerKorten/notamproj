@@ -30,6 +30,7 @@ ENV_MAPPING = {
     "NOTAM_OUTPUT_DIR": "output_dir",
     "NOTAM_FILES_DIR": "files_dir",
     "NOTAM_LOG_LEVEL": "log_level",
+    "MAP_STYLE": "map_style",
     "FAA_API_BASE_URL": "faa_api_base_url",
     "SMTP_HOST": "smtp_host",
     "SMTP_PORT": "smtp_port",
@@ -67,6 +68,7 @@ class Config:
     files_dir: str = "files"
     output_dir: str = "output"
     log_level: str = "INFO"
+    map_style: str = "https://tiles.openfreemap.org/styles/liberty"
     faa_api_base_url: str = "https://notams.aim.faa.gov/notamSearch"
     smtp_host: str = ""
     smtp_port: int = 587
@@ -112,7 +114,7 @@ def _load_file(base_dir: str | Path) -> dict:
 
 def _apply_file(file_cfg: dict, merged: dict) -> dict:
     """Merge ``nested = {"email": {...}}``-style file config into flat keys."""
-    for key in ("airports", "files_dir", "output_dir", "log_level", "faa_api_base_url"):
+    for key in ("airports", "files_dir", "output_dir", "log_level", "map_style", "faa_api_base_url"):
         if key in file_cfg:
             _coerce(merged, key, file_cfg[key])
     email = file_cfg.get("email") or {}

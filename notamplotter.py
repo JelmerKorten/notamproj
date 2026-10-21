@@ -47,7 +47,7 @@ def main(root, cfg):
 
     df = parse_faa_response({"notamList": notams, "totalNotamCount": len(notams)})
     logger.info("parsed %d notams", len(df))
-    handle(df, filepath_out=OUTPUT_FILE, airports_str=airports_str)
+    handle(df, filepath_out=OUTPUT_FILE, airports_str=airports_str, map_style=cfg.map_style)
 
 
 if __name__ == "__main__":

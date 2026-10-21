@@ -16,6 +16,11 @@ output_dir: output
 # Root logging level.
 log_level: INFO
 
+# MapLibre basemap style URL. OpenFreeMap is OSM-derived, needs no API key and
+# has no request limits. Do not point this at tile.openstreetmap.org for
+# automated/app use (their tile policy forbids it).
+map_style: https://tiles.openfreemap.org/styles/liberty
+
 # FAA API base URL (no key required).
 faa_api_base_url: https://notams.aim.faa.gov/notamSearch
 
