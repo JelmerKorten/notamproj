@@ -9,6 +9,7 @@ the GCAA path (:func:`handle_gcaa`).
 
 import copy
 import json
+import math
 import re
 from datetime import date
 from html import escape
@@ -328,6 +329,41 @@ def create_jdata(df: pd.DataFrame) -> dict:
     return jdata
 
 
+def _shape_area(coords) -> float:
+    """Approximate the enclosed area of a ``(lon, lat)`` ring in square degrees.
+
+    Returns ``0`` for shapes with fewer than three points (lines and markers).
+    Only the relative ordering matters, so a cosine-scaled planar shoelace is
+    sufficient.
+    """
+
+    if not coords or len(coords) < 3:
+        return 0.0
+    mean_lat = sum(lat for _, lat in coords) / len(coords)
+    lon_scale = math.cos(math.radians(mean_lat))
+    area = 0.0
+    for (lon1, lat1), (lon2, lat2) in zip(coords, coords[1:] + coords[:1]):
+        area += (lon1 * lon_scale) * lat2 - (lon2 * lon_scale) * lat1
+    return abs(area) / 2
+
+
+def sort_shapes_by_area(df: pd.DataFrame) -> pd.DataFrame:
+    """Order shapes smallest first so smaller ones render on top.
+
+    Plotly draws traces and geoJSON features in order, so a small shape placed
+    before a larger one that engulfs it can be hidden and unhoverable. Sorting
+    ascending by area means any engulfing shape is drawn first and its smaller
+    contents last.
+    """
+
+    areas = [
+        _shape_area(df.at[idx, "coords"]) if df.at[idx, "geom"] in ("polygon", "circle") else 0.0
+        for idx in df.index
+    ]
+    order = sorted(range(len(df)), key=lambda position: -areas[position])
+    return df.iloc[order]
+
+
 def _load_overlay(base_dir: str | Path = ".") -> dict:
     """Load the optional ``plot_overlay.json`` from ``base_dir`` (absent -> empty dict)."""
     path = Path(base_dir) / _OVERLAY_FILE
@@ -379,6 +415,7 @@ def back_traces(
             hovertemplate="%{text}",
             showscale=False,
             legendwidth=25,
+            legendrank=0,
             marker=dict(line=dict(color="red", width=1), opacity=0.5),
         )
     )
@@ -400,7 +437,7 @@ def back_traces(
     fig.update_layout(legend=dict(itemdoubleclick=False))
 
     # commonly used routes
-    for route in routes:
+    for rank, route in enumerate(routes, start=1):
         fig.add_trace(
             go.Scattermapbox(
                 name=route["name"],
@@ -408,9 +445,12 @@ def back_traces(
                 lon=route["lon"],
                 lat=route["lat"],
                 legendwidth=LEG_WIDTH,
+                legendrank=rank,
                 line=dict(color=ROUTECOL),
             )
         )
+
+    next_legend_rank = len(routes) + 1
 
     # grid lines
     if grid:
@@ -442,9 +482,15 @@ def back_traces(
                 lat=gridlat,
                 below="true",
                 legendwidth=50,
+                legendrank=next_legend_rank,
                 line=dict(color="lightgrey", width=1),
             )
         )
+        next_legend_rank += 1
+
+    # NOTAM legend entries follow their serial code, after the pinned traces
+    groups = sorted({str(idx).rsplit("_", 1)[0] for idx in df.index if df.at[idx, "coords"]})
+    legend_ranks = {group: next_legend_rank + i for i, group in enumerate(groups)}
 
     # a trace per shape; shapes of the same NOTAM share one legend entry
     seen_groups = set()
@@ -461,6 +507,7 @@ def back_traces(
             hoverinfo="skip",
             legendwidth=0.1,
             legendgroup=group,
+            legendrank=legend_ranks[group],
             showlegend=group not in seen_groups,
             meta=idx,
         )
@@ -503,6 +550,7 @@ def back_traces(
     with open(filepath_out, "w") as file:
         file.write(html)
     logger.info("html file created in output folder")
+    return fig
 
 
 def handle(
@@ -530,6 +578,8 @@ def handle(
     logger.info("circles split")
     df = add_lines_and_points(df)
     logger.info("lines and points added")
+    df = sort_shapes_by_area(df)
+    logger.info("shapes ordered by area")
     jdata = create_jdata(df)
     logger.info("jdata created")
     back_traces(df, jdata, airports_str, filepath_out, map_style=map_style, base_dir=base_dir)
