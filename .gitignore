@@ -40,3 +40,6 @@ plot_overlay.json
 tests/
 files/
 output/
+
+# --- Internal agent notes (local only) ---
+AGENT_PLAN.md
