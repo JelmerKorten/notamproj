@@ -57,14 +57,14 @@ _SEARCH_UI = (
 
 _LEGEND_DIVIDER = "-------------------------<br>"
 
+# Each shape carries its own hover text; the extra box keeps the old
+# "Notams" hover title without reusing the per-NOTAM legend name.
+_HOVER_TEMPLATE = "%{text}<extra>Notams</extra>"
+
 _SEARCH_JS = r"""
 (function () {
   var gd = document.getElementById('notamplot');
   if (!gd || !gd.data || !gd.data.length) return;
-  var CHORO = 0;
-  var choro = gd.data[CHORO];
-  var allText = (choro && choro.text) || [];
-  var allLocs = (choro && choro.locations) || [];
   // every NOTAM shape trace (polygon/circle/line/point) carries ``meta``
   var notams = [];
   for (var i = 0; i < gd.data.length; i++) {
@@ -75,7 +75,6 @@ _SEARCH_JS = r"""
 
   function setVisible(keep) {
     var showS = [], hideS = [];
-    var keepLocs = [], keepZ = [], keepText = [];
     for (var i = 0; i < notams.length; i++) {
       var id = String(gd.data[notams[i]].meta);
       if (keep === null || keep.has(id)) showS.push(notams[i]);
@@ -83,21 +82,25 @@ _SEARCH_JS = r"""
     }
     if (showS.length) Plotly.restyle(gd, { visible: true }, showS);
     if (hideS.length) Plotly.restyle(gd, { visible: false }, hideS);
-    for (var j = 0; j < allLocs.length; j++) {
-      var lid = String(allLocs[j]);
-      if (keep === null || keep.has(lid)) {
-        keepLocs.push(allLocs[j]);
-        keepZ.push(0);
-        keepText.push(allText[j]);
-      }
+  }
+
+  // a polygon/circle trace stores its outline in geojson; a line/point trace
+  // stores it in lon/lat. Collect a trace's coordinates for bbox zooming.
+  function pushCoords(node, lon, lat) {
+    if (!node || !node.length) return;
+    if (typeof node[0] === 'number') { lon.push(node[0]); lat.push(node[1]); return; }
+    for (var i = 0; i < node.length; i++) pushCoords(node[i], lon, lat);
+  }
+
+  function collectCoords(tr, lon, lat) {
+    if (tr.lon && tr.lat) {
+      for (var i = 0; i < tr.lon.length; i++) { lon.push(tr.lon[i]); lat.push(tr.lat[i]); }
+      return;
     }
-    var data = gd.data.slice();
-    data[CHORO] = Object.assign({}, gd.data[CHORO], {
-      locations: keepLocs,
-      z: keepZ,
-      text: keepText,
-    });
-    Plotly.react(gd, data, gd.layout, { responsive: true });
+    var features = (tr.geojson && tr.geojson.features) || [];
+    for (var j = 0; j < features.length; j++) {
+      pushCoords(features[j].geometry && features[j].geometry.coordinates, lon, lat);
+    }
   }
 
   function fitZoom(west, east, south, north) {
@@ -123,8 +126,7 @@ _SEARCH_JS = r"""
     for (var k = 0; k < gd.data.length; k++) {
       if (gd.data[k].legendgroup !== group) continue;
       keep.add(String(gd.data[k].meta));
-      lon = lon.concat(gd.data[k].lon || []);
-      lat = lat.concat(gd.data[k].lat || []);
+      collectCoords(gd.data[k], lon, lat);
     }
     if (!lon.length) return;
     var west = Math.min.apply(null, lon), east = Math.max.apply(null, lon);
@@ -158,13 +160,7 @@ _SEARCH_JS = r"""
   function resolveTrace(p) {
     var cn = p.curveNumber;
     var tr = gd.data[cn];
-    if (tr && tr.meta != null) return cn;
-    if (cn === CHORO && p.location != null) {
-      for (var i = 0; i < notams.length; i++) {
-        if (String(gd.data[notams[i]].meta) === String(p.location)) return notams[i];
-      }
-    }
-    return null;
+    return tr && tr.meta != null ? cn : null;
   }
 
   if (gd.on) {
@@ -402,17 +398,28 @@ def back_traces(
     today = date.today()
     plottitle = today.strftime("%Y %b %d")
     plottitle += f" {escape(airports_str)}"
+    # Pinned "Notams" legend entry. The fills are drawn by the per-shape
+    # traces below so every NOTAM owns its own hover box; this trace only
+    # keeps the legend swatch and carries a sub-metre sliver of geometry so
+    # the legend symbol renders, with hover disabled.
+    swatch = {
+        "type": "Feature",
+        "properties": {"id": "Notams"},
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[0.0, 0.0], [1e-6, 0.0], [1e-6, 1e-6], [0.0, 1e-6], [0.0, 0.0]]],
+        },
+    }
     fig = go.Figure(
         go.Choroplethmapbox(
             name="Notams",
-            geojson=jdata,
-            text=df["wrap"],
-            locations=df.index,
-            z=[0] * len(df),
+            geojson={"type": "FeatureCollection", "features": [swatch]},
+            locations=["Notams"],
+            z=[0],
             featureidkey="properties.id",
             colorscale=[[0, "tomato"], [1, "tomato"]],
             showlegend=True,
-            hovertemplate="%{text}",
+            hoverinfo="skip",
             showscale=False,
             legendwidth=25,
             legendrank=0,
@@ -492,19 +499,20 @@ def back_traces(
     groups = sorted({str(idx).rsplit("_", 1)[0] for idx in df.index if df.at[idx, "coords"]})
     legend_ranks = {group: next_legend_rank + i for i, group in enumerate(groups)}
 
-    # a trace per shape; shapes of the same NOTAM share one legend entry
+    # a trace per shape; shapes of the same NOTAM share one legend entry.
+    # Each shape gets its own trace so hover is resolved per NOTAM: Plotly
+    # returns the first feature of a choropleth that contains the cursor, so
+    # one shared trace would always report the engulfing shape.
     seen_groups = set()
+    features_by_id = {feature["properties"]["id"]: feature for feature in jdata["features"]}
     for idx in df.index:
         if not df.at[idx, "coords"]:
             continue
         coords = df.at[idx, "coords"]
         geom = df.at[idx, "geom"]
         group = str(idx).rsplit("_", 1)[0]
-        trace_kwargs = dict(
+        legend_kwargs = dict(
             name=_LEGEND_DIVIDER + df.at[idx, "wrap"],
-            lon=[item[0] for item in coords],
-            lat=[item[1] for item in coords],
-            hoverinfo="skip",
             legendwidth=0.1,
             legendgroup=group,
             legendrank=legend_ranks[group],
@@ -512,16 +520,39 @@ def back_traces(
             meta=idx,
         )
         seen_groups.add(group)
+        if geom in ("polygon", "circle"):
+            fig.add_trace(
+                go.Choroplethmapbox(
+                    geojson={"type": "FeatureCollection", "features": [features_by_id[idx]]},
+                    locations=[idx],
+                    z=[0],
+                    text=[df.at[idx, "wrap"]],
+                    featureidkey="properties.id",
+                    colorscale=[[0, "tomato"], [1, "tomato"]],
+                    hovertemplate=_HOVER_TEMPLATE,
+                    showscale=False,
+                    marker=dict(line=dict(color="red", width=1), opacity=0.5),
+                    **legend_kwargs,
+                )
+            )
+            continue
+        # lines and points keep ``hoverinfo="skip"``: scatter hover is
+        # proximity-based (within ~20px), which would preempt the region-exact
+        # polygon/circle hover above them.
+        trace_kwargs = dict(
+            lon=[item[0] for item in coords],
+            lat=[item[1] for item in coords],
+            hoverinfo="skip",
+            **legend_kwargs,
+        )
         if geom == "point":
             trace_kwargs.update(mode="markers", marker=dict(color="tomato"))
-        elif geom == "line":
+        else:
             trace_kwargs.update(
                 mode="markers+lines",
                 line=dict(color="tomato", width=1),
                 marker=dict(color="tomato"),
             )
-        else:
-            trace_kwargs.update(mode="lines", fill="toself", line=dict(color="tomato", width=1))
         fig.add_trace(go.Scattermapbox(**trace_kwargs))
 
     html = fig.to_html(
