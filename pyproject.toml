@@ -28,7 +28,8 @@ dev = [
 ]
 oauth = [
     "google-auth-oauthlib==1.4.0",
-    "oauthlib==4.0.1"
+    "oauthlib==4.0.1",
+    "pyasn1==0.6.5"
 ]
 
 
