@@ -28,7 +28,7 @@ dev = [
 ]
 oauth = [
     "google-auth-oauthlib==1.4.0",
-    "oauthlib==4.0.0"
+    "oauthlib==4.0.1"
 ]
 
 
